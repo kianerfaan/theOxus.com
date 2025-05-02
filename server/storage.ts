@@ -26,55 +26,129 @@ export class MemStorage implements IStorage {
     this.userCurrentId = 1;
     this.feedSourceCurrentId = 1;
     
-    // Add news sources with reliable RSS feeds
+    // Wikipedia Current Events - special case with no category
     this.createFeedSource({
       name: "Wikipedia Current Events",
       url: "https://www.to-rss.xyz/wikipedia/current_events/",
-      category: "News",
+      category: null, // No category since this will be featured on the homepage
       isActive: true,
     });
     
+    // Legacy/Institutional category
     this.createFeedSource({
       name: "Al Jazeera",
       url: "https://www.aljazeera.com/xml/rss/all.xml",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true,
     });
     
     this.createFeedSource({
       name: "RT",
       url: "https://www.rt.com/rss/news",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true,
     });
     
     this.createFeedSource({
       name: "The Hill",
       url: "https://thehill.com/feed",
-      category: "Politics",
+      category: "Legacy/Institutional",
       isActive: true,
     });
     
     this.createFeedSource({
       name: "Deutsche Welle",
       url: "https://rss.dw.com/xml/rss_en_world",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true,
     });
     
     this.createFeedSource({
       name: "France 24",
       url: "https://www.france24.com/en/rss",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true,
     });
     
     this.createFeedSource({
       name: "BBC News",
       url: "https://feeds.bbci.co.uk/news/world/rss.xml",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true,
     });
+    
+    this.createFeedSource({
+      name: "Financial Times",
+      url: "https://rss.app/feeds/DD5t6t02PenZsNJY.xml",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "NPR",
+      url: "https://www.npr.org/rss/rss.php?id=1001",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "UN News",
+      url: "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Tehran Times",
+      url: "https://rss.app/feeds/thhYcrDiGjHGCMZm.xml",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "The Jerusalem Post",
+      url: "https://rss.jpost.com/rss/rssfeedsfrontpage.aspx",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "South China Morning Post",
+      url: "https://www.scmp.com/rss/91/feed",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Times of India",
+      url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "The Japan Times",
+      url: "https://rss.app/feeds/77mMXrkIOqfDd7YZ.xml",
+      category: "Legacy/Institutional",
+      isActive: true,
+    });
+    
+    // Alternative category
+    this.createFeedSource({
+      name: "ZeroHedge",
+      url: "https://cms.zerohedge.com/fullrss2.xml",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "The Intercept",
+      url: "https://theintercept.com/feed/?rss",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    // You can add more categories like "Money & Markets" and "Frontier Tech" here
   }
 
   async getUser(id: number): Promise<User | undefined> {

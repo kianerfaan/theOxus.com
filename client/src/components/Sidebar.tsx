@@ -105,8 +105,8 @@ export default function Sidebar({ onAddSource, onSelectSource, selectedSourceId 
       </nav>
       
       {/* Feed Sources Section */}
-      <div className="mt-6 px-4">
-        <div className="flex justify-between items-center mb-2">
+      <div className="mt-6">
+        <div className="flex justify-between items-center mb-2 px-4">
           <h2 className="font-bold text-sm uppercase text-gray-500">Feed Sources</h2>
           <button 
             className="text-secondary hover:text-primary"
@@ -126,34 +126,56 @@ export default function Sidebar({ onAddSource, onSelectSource, selectedSourceId 
         ) : sources.length === 0 ? (
           <div className="py-4 text-center text-gray-500">No sources added yet</div>
         ) : (
-          <div className="space-y-1">
-            {sources.map((source: FeedSource) => (
-              <div 
-                key={source.id}
-                className={cn(
-                  "flex items-center py-2 px-1 rounded group hover:bg-accent/50 cursor-pointer",
-                  selectedSourceId === source.id && "sidebar-item active"
-                )}
-                onClick={() => onSelectSource(source.id)}
-              >
-                <Switch 
-                  checked={source.isActive} 
-                  onCheckedChange={(checked) => {
-                    handleToggleSource(source.id, source.isActive);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="mr-2 h-4 w-7" 
-                />
-                <span className="text-sm flex-grow">{source.name}</span>
-                <button 
-                  className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-primary"
-                  onClick={(e) => handleDeleteSource(source.id, e)}
-                  aria-label="Remove source"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+          <div>
+            {/* Group sources by category */}
+            {['Legacy/Institutional', 'Alternative', 'Money & Markets', 'Frontier Tech'].map(category => {
+              // Get sources in this category and sort them alphabetically by name
+              const categoryItems = sources
+                .filter(source => source.category === category)
+                .sort((a, b) => a.name.localeCompare(b.name));
+              
+              // Only display categories that have sources
+              if (categoryItems.length === 0) return null;
+              
+              return (
+                <div key={category} className="mb-4">
+                  <h3 className="text-xs font-semibold px-4 py-1 uppercase text-primary-foreground bg-primary/90">
+                    {category}
+                  </h3>
+                  <div className="space-y-1 px-4 pt-2">
+                    {categoryItems.map((source: FeedSource) => (
+                      <div 
+                        key={source.id}
+                        className={cn(
+                          "flex items-center py-2 px-1 rounded group hover:bg-accent/50 cursor-pointer",
+                          selectedSourceId === source.id && "sidebar-item active"
+                        )}
+                        onClick={() => onSelectSource(source.id)}
+                      >
+                        <Switch 
+                          checked={source.isActive} 
+                          onCheckedChange={(checked) => {
+                            handleToggleSource(source.id, source.isActive);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mr-2 h-4 w-7" 
+                        />
+                        <span className="text-sm flex-grow">{source.name}</span>
+                        <button 
+                          className="text-gray-400 opacity-0 group-hover:opacity-100 hover:text-primary"
+                          onClick={(e) => handleDeleteSource(source.id, e)}
+                          aria-label="Remove source"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Wikipedia Current Events is now featured on the homepage, so we don't need to display it in the sidebar */}
           </div>
         )}
       </div>

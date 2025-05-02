@@ -16,6 +16,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     }
   });
+  
+  // Add new endpoint for Wikipedia Current Events
+  app.get("/api/wikipedia-current-events", async (req: Request, res: Response) => {
+    try {
+      const sources = await storage.getActiveFeedSources();
+      const wikipediaSource = sources.find(source => source.name === "Wikipedia Current Events");
+      
+      if (!wikipediaSource) {
+        return res.json([]);
+      }
+      
+      try {
+        const feed = await parser.parseURL(wikipediaSource.url);
+        
+        if (feed.items.length > 0) {
+          const latestItem = feed.items[0];
+          
+          // Process the content for better display
+          let content = latestItem.content || latestItem.contentSnippet || "";
+          
+          // Replace links with proper attributes
+          content = content.replace(/<a\s+href=/g, '<a target="_blank" rel="noopener noreferrer" href=');
+          
+          // Add styling to lists
+          content = content.replace(/<ul>/g, '<ul class="list-disc pl-5 my-2">');
+          content = content.replace(/<ol>/g, '<ol class="list-decimal pl-5 my-2">');
+          
+          // Add styling to paragraphs
+          content = content.replace(/<p>/g, '<p class="my-2">');
+          
+          const item = {
+            id: latestItem.guid || latestItem.link || `${wikipediaSource.id}-${latestItem.title}`,
+            title: latestItem.title || "No Title",
+            link: latestItem.link || "",
+            pubDate: latestItem.pubDate || new Date().toISOString(),
+            content: content,
+            contentSnippet: content,
+            source: wikipediaSource.url,
+            sourceName: wikipediaSource.name,
+            isWikipediaCurrentEvents: true
+          };
+          
+          return res.json([item]);
+        }
+        
+        return res.json([]);
+        
+      } catch (error) {
+        console.error("Error fetching Wikipedia Current Events:", error);
+        res.status(500).json({ message: "Failed to fetch Wikipedia Current Events" });
+      }
+    } catch (error) {
+      console.error("Error accessing sources:", error);
+      res.status(500).json({ message: "Error accessing sources" });
+    }
+  });
 
   // Get all feed sources
   app.get("/api/sources", async (req: Request, res: Response) => {
@@ -153,6 +209,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const feed = await parser.parseURL(source.url);
           
+          // Special handling for Wikipedia Current Events
+          if (source.name === "Wikipedia Current Events") {
+            // Only take the latest item
+            if (feed.items.length > 0) {
+              const latestItem = feed.items[0];
+              
+              // Process the content for better display
+              let content = latestItem.content || latestItem.contentSnippet || "";
+              
+              // Replace links with proper attributes
+              content = content.replace(/<a\s+href=/g, '<a target="_blank" rel="noopener noreferrer" href=');
+              
+              // Add styling to lists
+              content = content.replace(/<ul>/g, '<ul class="list-disc pl-5 my-2">');
+              content = content.replace(/<ol>/g, '<ol class="list-decimal pl-5 my-2">');
+              
+              // Add styling to paragraphs
+              content = content.replace(/<p>/g, '<p class="my-2">');
+              
+              return [{
+                id: latestItem.guid || latestItem.link || `${source.id}-${latestItem.title}`,
+                title: latestItem.title || "No Title",
+                link: latestItem.link || "",
+                pubDate: latestItem.pubDate || new Date().toISOString(),
+                content: content,
+                contentSnippet: content, // Use full content for snippet too
+                source: source.url,
+                sourceName: source.name,
+                // Add a flag to identify this as Wikipedia Current Events
+                isWikipediaCurrentEvents: true
+              }];
+            }
+            return [];
+          }
+          
+          // Normal handling for other sources
           return feed.items.map(item => ({
             id: item.guid || item.link || `${source.id}-${item.title}`,
             title: item.title || "No Title",
@@ -161,7 +253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: item.content || item.contentSnippet || "",
             contentSnippet: item.contentSnippet || "",
             source: source.url,
-            sourceName: source.name
+            sourceName: source.name,
+            isWikipediaCurrentEvents: false
           }));
         } catch (error) {
           console.error(`Error fetching feed from ${source.url}:`, error);

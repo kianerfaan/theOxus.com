@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import NewsFeed from "@/components/NewsFeed";
+import WikipediaCurrentEvents from "@/components/WikipediaCurrentEvents";
 import AddSourceModal from "@/components/AddSourceModal";
 import { useToast } from "@/hooks/use-toast";
 import { useMobile } from "@/hooks/use-mobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedSource } from "@shared/schema";
 
 function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("wikipedia");
   const { isMobile } = useMobile();
   const { toast } = useToast();
 
@@ -34,6 +37,9 @@ function Home() {
 
   const handleSourceSelect = (id: number | undefined) => {
     setSelectedSourceId(id);
+    // Switch to news feed tab when a source is selected
+    setActiveTab("news");
+    
     if (isMobile) {
       setIsSidebarOpen(false);
     }
@@ -109,11 +115,31 @@ function Home() {
         />
       </div>
 
-      {/* Main Content */}
-      <NewsFeed 
-        selectedSourceId={selectedSourceId} 
-        onError={handleError} 
-      />
+      {/* Main Content with Tabs */}
+      <div className="flex-1 overflow-y-auto pt-0 md:pt-4 pb-4 px-4 md:px-6 mt-14 md:mt-0">
+        <Tabs 
+          defaultValue="wikipedia" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 mb-4">
+            <TabsTrigger value="news">News Feeds</TabsTrigger>
+            <TabsTrigger value="wikipedia">Wikipedia Current Events</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="wikipedia" className="mt-0">
+            <WikipediaCurrentEvents onError={handleError} />
+          </TabsContent>
+          
+          <TabsContent value="news" className="mt-0">
+            <NewsFeed 
+              selectedSourceId={selectedSourceId} 
+              onError={handleError} 
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Add Source Modal */}
       <AddSourceModal 

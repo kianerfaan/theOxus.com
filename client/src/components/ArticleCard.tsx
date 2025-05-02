@@ -18,16 +18,28 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   
   const formattedDate = article.pubDate ? format(new Date(article.pubDate), 'MMMM d, yyyy') : '';
   
-  // Create a clean snippet from the content
-  let cleanSnippet = article.contentSnippet || '';
-  if (!cleanSnippet && article.content) {
-    // Strip HTML tags if we have to use content
-    cleanSnippet = article.content.replace(/<[^>]*>?/gm, '');
-  }
+  // Handle content differently based on source
+  const isWikipedia = article.isWikipediaCurrentEvents === true;
   
-  // Limit snippet length
-  if (cleanSnippet.length > 300) {
-    cleanSnippet = cleanSnippet.substring(0, 300) + '...';
+  let displayContent = '';
+  
+  if (isWikipedia) {
+    // For Wikipedia, we'll keep the HTML but sanitize it later when rendering
+    displayContent = article.content || article.contentSnippet || '';
+  } else {
+    // For other sources, create a clean text snippet
+    let cleanSnippet = article.contentSnippet || '';
+    if (!cleanSnippet && article.content) {
+      // Strip HTML tags if we have to use content
+      cleanSnippet = article.content.replace(/<[^>]*>?/gm, '');
+    }
+    
+    // Limit snippet length for non-Wikipedia content
+    if (cleanSnippet.length > 300) {
+      cleanSnippet = cleanSnippet.substring(0, 300) + '...';
+    }
+    
+    displayContent = cleanSnippet;
   }
   
   const handleSaveArticle = (e: React.MouseEvent) => {
@@ -75,8 +87,14 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   };
   
   return (
-    <Card className="article-card bg-white border border-accent rounded-lg overflow-hidden hover:shadow-md transition-all duration-200">
-      <CardContent className="p-5">
+    <Card className={cn(
+      "article-card bg-white border border-accent rounded-lg overflow-hidden hover:shadow-md transition-all duration-200",
+      isWikipedia && "border-primary/50 bg-primary/5"
+    )}>
+      <CardContent className={cn(
+        "p-5",
+        isWikipedia && "p-6"
+      )}>
         <div className="flex items-center mb-3">
           <Badge variant="default" className="mr-3 bg-primary text-white font-medium">
             {article.sourceName}
@@ -86,9 +104,21 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         
         <h3 className="text-xl font-bold mb-2 text-primary hover:text-secondary transition-colors duration-200">{article.title}</h3>
         
-        <div className="article-content text-text mb-4">
-          {cleanSnippet}
-        </div>
+        {isWikipedia ? (
+          <div 
+            className="wiki-content prose prose-blue max-w-none mb-6 text-text"
+            dangerouslySetInnerHTML={{ __html: displayContent }}
+            style={{
+              lineHeight: '1.6',
+              fontSize: '1rem',
+              color: '#222',
+            }}
+          />
+        ) : (
+          <div className="article-content text-text mb-4">
+            {displayContent}
+          </div>
+        )}
         
         <div className="flex justify-between items-center">
           <a 

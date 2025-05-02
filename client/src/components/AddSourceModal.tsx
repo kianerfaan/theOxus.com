@@ -34,7 +34,7 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
     defaultValues: {
       name: "",
       url: "",
-      category: "News",
+      category: "Legacy/Institutional",
       isActive: true
     }
   });
@@ -121,32 +121,35 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
             <FormField
               control={form.control}
               name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category (Optional)</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="News">News</SelectItem>
-                        <SelectItem value="Technology">Technology</SelectItem>
-                        <SelectItem value="Science">Science</SelectItem>
-                        <SelectItem value="Health">Health</SelectItem>
-                        <SelectItem value="Politics">Politics</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Ensure field value is always a string
+                const safeValue = typeof field.value === 'string' ? field.value : 'Legacy/Institutional';
+                
+                return (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={safeValue}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="Legacy/Institutional">Legacy/Institutional</SelectItem>
+                          <SelectItem value="Alternative">Alternative</SelectItem>
+                          <SelectItem value="Money & Markets">Money & Markets</SelectItem>
+                          <SelectItem value="Frontier Tech">Frontier Tech</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             
             <DialogFooter className="mt-6">

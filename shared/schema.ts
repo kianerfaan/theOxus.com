@@ -44,4 +44,5 @@ export type RssItem = {
   contentSnippet: string;
   source: string;
   sourceName: string;
+  isWikipediaCurrentEvents?: boolean;
 };
