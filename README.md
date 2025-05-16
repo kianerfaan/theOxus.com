@@ -7,10 +7,6 @@
 
 theOxus is a sophisticated RSS news aggregator and digital library platform that combines intelligent content curation with a streamlined user experience. It leverages AI to rank articles by relevance, impact, and sentiment while providing an elegant interface for consuming news from international sources.
 
-<p align="center">
-  <img src="generated-icon.png" alt="theOxus Logo" width="150">
-</p>
-
 ## Features
 
 - **AI-Powered News Ranking**: Uses Mistral AI to analyze and rank news articles by relevance, impact, and sentiment
