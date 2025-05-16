@@ -18,12 +18,19 @@ export function useWikipediaCurrentEvents() {
     refetchInterval: 5 * 60 * 1000, // Auto-refetch every 5 minutes
   });
   
-  // Update lastUpdated when data is refreshed
+  // Update lastUpdated when data is refreshed or refetch is called
   useEffect(() => {
     if (wikipediaEvents && wikipediaEvents.length > 0) {
       setLastUpdated(new Date());
     }
   }, [wikipediaEvents]);
+  
+  // Wrap the refetch function to also update the timestamp
+  const refetchWithTimestamp = async () => {
+    // Update timestamp immediately when refresh is clicked
+    setLastUpdated(new Date());
+    return await refetch();
+  };
   
   // Periodically refresh data
   useEffect(() => {
@@ -43,7 +50,7 @@ export function useWikipediaCurrentEvents() {
     isLoading,
     isError,
     error,
-    refetch,
+    refetch: refetchWithTimestamp,
     lastUpdated
   };
 }

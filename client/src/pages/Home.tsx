@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import NewsFeed from "@/components/NewsFeed";
 import WikipediaCurrentEvents from "@/components/WikipediaCurrentEvents";
@@ -12,7 +12,9 @@ function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("wikipedia");
+  const [activeTab, setActiveTab] = useState<string>("news");
+  const [tickerEnabled, setTickerEnabled] = useState(false);
+  const [topNewsEnabled, setTopNewsEnabled] = useState(true); // Enabled by default
   const { isMobile } = useMobile();
   const { toast } = useToast();
 
@@ -35,10 +37,24 @@ function Home() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // Reference to the NewsFeed component for manual refreshing
+  const newsFeedRef = useRef<{
+    refreshFeed: () => void;
+  } | null>(null);
+  
   const handleSourceSelect = (id: number | undefined) => {
     setSelectedSourceId(id);
     // Switch to news feed tab when a source is selected
     setActiveTab("news");
+    
+    // If selecting "All Sources" (id is undefined), trigger a refresh
+    if (id === undefined) {
+      // Small delay to ensure the state change propagates
+      setTimeout(() => {
+        // If we have a ref to the NewsFeed component, call its refresh method
+        newsFeedRef.current?.refreshFeed();
+      }, 100);
+    }
     
     if (isMobile) {
       setIsSidebarOpen(false);
@@ -51,6 +67,14 @@ function Home() {
       description: message,
       variant: "destructive",
     });
+  };
+  
+  const handleTickerToggle = (enabled: boolean) => {
+    setTickerEnabled(enabled);
+  };
+  
+  const handleTopNewsToggle = (enabled: boolean) => {
+    setTopNewsEnabled(enabled);
   };
 
   return (
@@ -78,10 +102,15 @@ function Home() {
               />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-primary">NewsFlow</h1>
+          <h1 className="text-xl font-bold text-primary">theOxus.com</h1>
           <button
             className="text-primary p-1"
-            onClick={() => setSelectedSourceId(undefined)}
+            onClick={() => {
+              setSelectedSourceId(undefined);
+              setTimeout(() => {
+                newsFeedRef.current?.refreshFeed();
+              }, 100);
+            }}
             aria-label="Refresh feeds"
           >
             <svg
@@ -112,31 +141,40 @@ function Home() {
           onAddSource={showAddSourceModal} 
           onSelectSource={handleSourceSelect} 
           selectedSourceId={selectedSourceId}
+          tickerEnabled={tickerEnabled}
+          onTickerToggle={handleTickerToggle}
+          topNewsEnabled={topNewsEnabled}
+          onTopNewsToggle={handleTopNewsToggle}
         />
       </div>
 
       {/* Main Content with Tabs */}
-      <div className="flex-1 overflow-y-auto pt-0 md:pt-4 pb-4 px-4 md:px-6 mt-14 md:mt-0">
+      <div className="flex-1 overflow-y-auto pt-0 md:pt-2 pb-2 px-4 md:px-6 mt-14 md:mt-0">
         <Tabs 
-          defaultValue="wikipedia" 
+          defaultValue="news" 
           value={activeTab} 
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-2 mb-4">
+          <TabsList className="grid grid-cols-2 mb-2">
             <TabsTrigger value="news">News Feeds</TabsTrigger>
-            <TabsTrigger value="wikipedia">Wikipedia Current Events</TabsTrigger>
+            <TabsTrigger value="wikipedia">Current Events</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="wikipedia" className="mt-0">
-            <WikipediaCurrentEvents onError={handleError} />
-          </TabsContent>
           
           <TabsContent value="news" className="mt-0">
             <NewsFeed 
+              ref={newsFeedRef}
               selectedSourceId={selectedSourceId} 
-              onError={handleError} 
+              onError={handleError}
+              tickerEnabled={tickerEnabled}
+              onTickerToggle={handleTickerToggle}
+              topNewsEnabled={topNewsEnabled}
+              onTopNewsToggle={handleTopNewsToggle}
             />
+          </TabsContent>
+          
+          <TabsContent value="wikipedia" className="mt-0">
+            <WikipediaCurrentEvents onError={handleError} />
           </TabsContent>
         </Tabs>
       </div>

@@ -139,6 +139,7 @@ export default function AddSourceModal({ isOpen, onClose }: AddSourceModalProps)
                       </FormControl>
                       <SelectContent>
                         <SelectGroup>
+                          <SelectItem value="The Big 3">The Big 3</SelectItem>
                           <SelectItem value="Legacy/Institutional">Legacy/Institutional</SelectItem>
                           <SelectItem value="Alternative">Alternative</SelectItem>
                           <SelectItem value="Money & Markets">Money & Markets</SelectItem>
