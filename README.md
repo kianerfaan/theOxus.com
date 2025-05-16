@@ -5,7 +5,7 @@
 ![React](https://img.shields.io/badge/React-18-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
 
-theOxus is a sophisticated RSS news aggregator and digital library platform that combines intelligent content curation with a streamlined user experience. It leverages AI to rank articles by relevance, impact, and sentiment while providing an elegant interface for consuming news from international sources.
+theOxus is an RSS news aggregator and digital library platform that combines content curation with a streamlined user experience. It leverages AI to rank articles by relevance, impact, and sentiment while providing an interface for consuming news from international sources.
 
 ## Features
 
