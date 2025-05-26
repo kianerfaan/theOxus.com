@@ -3,8 +3,10 @@ import Sidebar from "@/components/Sidebar";
 import NewsFeed from "@/components/NewsFeed";
 import WikipediaCurrentEvents from "@/components/WikipediaCurrentEvents";
 import AddSourceModal from "@/components/AddSourceModal";
+import { AuthStatus } from "@/components/auth/AuthStatus";
 import { useToast } from "@/hooks/use-toast";
 import { useMobile } from "@/hooks/use-mobile";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedSource } from "@shared/schema";
 
@@ -15,6 +17,8 @@ function Home() {
   const [activeTab, setActiveTab] = useState<string>("news");
   const [tickerEnabled, setTickerEnabled] = useState(false);
   const [topNewsEnabled, setTopNewsEnabled] = useState(true); // Enabled by default
+  const [searchEnabled, setSearchEnabled] = useLocalStorage<boolean>("searchEnabled", true); // Enabled by default, persisted in localStorage
+  const [pictureOfTheDayEnabled, setPictureOfTheDayEnabled] = useState(true); // Default to on
   const { isMobile } = useMobile();
   const { toast } = useToast();
 
@@ -76,6 +80,10 @@ function Home() {
   const handleTopNewsToggle = (enabled: boolean) => {
     setTopNewsEnabled(enabled);
   };
+  
+  const handleSearchToggle = (enabled: boolean) => {
+    setSearchEnabled(enabled);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -103,31 +111,34 @@ function Home() {
             </svg>
           </button>
           <h1 className="text-xl font-bold text-primary">theOxus.com</h1>
-          <button
-            className="text-primary p-1"
-            onClick={() => {
-              setSelectedSourceId(undefined);
-              setTimeout(() => {
-                newsFeedRef.current?.refreshFeed();
-              }, 100);
-            }}
-            aria-label="Refresh feeds"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div className="flex items-center gap-2">
+            <AuthStatus />
+            <button
+              className="text-primary p-1"
+              onClick={() => {
+                setSelectedSourceId(undefined);
+                setTimeout(() => {
+                  newsFeedRef.current?.refreshFeed();
+                }, 100);
+              }}
+              aria-label="Refresh feeds"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -145,6 +156,10 @@ function Home() {
           onTickerToggle={handleTickerToggle}
           topNewsEnabled={topNewsEnabled}
           onTopNewsToggle={handleTopNewsToggle}
+          searchEnabled={searchEnabled}
+          onSearchToggle={handleSearchToggle}
+          pictureOfTheDayEnabled={pictureOfTheDayEnabled}
+          onPictureOfTheDayToggle={setPictureOfTheDayEnabled}
         />
       </div>
 
@@ -170,6 +185,9 @@ function Home() {
               onTickerToggle={handleTickerToggle}
               topNewsEnabled={topNewsEnabled}
               onTopNewsToggle={handleTopNewsToggle}
+              searchEnabled={searchEnabled}
+              onSearchToggle={handleSearchToggle}
+              pictureOfTheDayEnabled={pictureOfTheDayEnabled}
             />
           </TabsContent>
           

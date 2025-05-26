@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import PictureOfTheDay from "./PictureOfTheDay";
 import TickerTape from "./TickerTape";
 import TopNewsCard, { TopNewsCardRefHandle } from "./TopNewsCard";
+import SearchBar from "./SearchBar";
 
 /**
  * Props for the NewsFeed component
@@ -36,6 +37,12 @@ interface NewsFeedProps {
   topNewsEnabled?: boolean;
   /** Callback for toggling the top news section */
   onTopNewsToggle?: (enabled: boolean) => void;
+  /** Whether the search bar is enabled */
+  searchEnabled?: boolean;
+  /** Callback for toggling the search bar */
+  onSearchToggle?: (enabled: boolean) => void;
+  /** Whether the picture of the day is enabled */
+  pictureOfTheDayEnabled?: boolean;
 }
 
 /**
@@ -69,12 +76,16 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
       tickerEnabled,         // Whether the ticker tape is enabled
       onTickerToggle,        // Callback for toggling the ticker tape
       topNewsEnabled = false, // Whether the top news section is enabled (default: false)
-      onTopNewsToggle        // Callback for toggling the top news section
+      onTopNewsToggle,       // Callback for toggling the top news section
+      searchEnabled = false, // Whether the search bar is enabled (default: false)
+      onSearchToggle,        // Callback for toggling the search bar
+      pictureOfTheDayEnabled = false // Whether the picture of the day is enabled (default: false)
     } = props;
     
     // State for pagination and articles
     const [page, setPage] = useState(1);
     const [allArticles, setAllArticles] = useState<RssItem[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const pageSize = 10; // Number of articles per page
     
     // Reference to the TopNewsCard component for refreshing top news
@@ -112,11 +123,21 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
      * Filter articles for the main feed
      * 
      * - Removes Wikipedia articles (shown separately in dedicated components)
+     * - Applies search filter if search is enabled and a search term is provided
      * - Keeps all other articles for the main feed
      */
     const filteredArticles = allArticles.filter(article => {
       // Filter out Wikipedia articles that have their own dedicated display components
-      return !article.sourceName?.includes("Wikipedia");
+      const isNotWikipedia = !article.sourceName?.includes("Wikipedia");
+      
+      // Apply search filter if enabled and search term exists
+      if (searchEnabled && searchTerm) {
+        // Case-insensitive search in the title
+        return isNotWikipedia && article.title.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+      
+      // Otherwise just filter out Wikipedia
+      return isNotWikipedia;
     });
     
     // Pagination: Slice the filtered articles based on current page
@@ -177,18 +198,33 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
           showControls={false} 
         />
         
-        {/* Top News (powered by Mistral AI) */}
-        <div className="mt-0">
-          <TopNewsCard 
-            ref={topNewsRef}
-            isVisible={topNewsEnabled} 
+        {/* Search Bar - Show when search is enabled */}
+        <div className="px-2 mt-0">
+          <SearchBar 
+            isVisible={searchEnabled} 
+            onSearch={setSearchTerm}
           />
         </div>
         
-        {/* Picture of the Day - Always shown between headline and toolbar */}
-        <div className="mt-2">
-          <PictureOfTheDay />
-        </div>
+        {/* Only show the Top News and Picture of the Day when not searching or search is empty */}
+        {(!searchEnabled || searchTerm.trim() === '') && (
+          <>
+            {/* Top News (powered by Mistral AI) */}
+            <div className="mt-2">
+              <TopNewsCard 
+                ref={topNewsRef}
+                isVisible={topNewsEnabled} 
+              />
+            </div>
+            
+            {/* Picture of the Day */}
+            {pictureOfTheDayEnabled && (
+              <div className="mt-2">
+                <PictureOfTheDay />
+              </div>
+            )}
+          </>
+        )}
         
         {/* Toolbar - now below Picture of the Day and Top News */}
         <div className="mt-0">

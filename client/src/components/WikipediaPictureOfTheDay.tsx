@@ -8,21 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WikipediaPictureOfTheDay() {
-  const [picture, setPicture] = useState<RssItem | null>(null);
-
-  // Direct fetching from the specified feed URL
-  const { data: pictures, isLoading, error } = useQuery<RssItem[]>({
-    queryKey: ['/api/news?sourceId=2'],
+  // Fetch from the dedicated Wikipedia Picture of the Day endpoint
+  const { data: picture, isLoading, error } = useQuery<any>({
+    queryKey: ['/api/wikipedia-picture-of-the-day'],
     staleTime: 30 * 60 * 1000, // 30 minutes
     refetchInterval: 60 * 60 * 1000, // Refresh every hour
   });
-
-  useEffect(() => {
-    if (pictures && pictures.length > 0) {
-      // Get the latest picture
-      setPicture(pictures[0]);
-    }
-  }, [pictures]);
 
   // Extract image URL from content if available
   const extractImageUrl = (content: string): string | null => {
@@ -31,7 +22,10 @@ export default function WikipediaPictureOfTheDay() {
     return match ? match[1] : null;
   };
 
-  const imageUrl = picture?.content ? extractImageUrl(picture.content) : null;
+  // Check if the media is a video based on API response
+  const isVideo = picture?.isVideo || picture?.videoUrl;
+  const imageUrl = picture?.imageUrl || (picture?.content ? extractImageUrl(picture.content) : null);
+  const videoUrl = picture?.videoUrl;
   const formattedDate = picture?.pubDate 
     ? format(new Date(picture.pubDate), 'MMMM d, yyyy • h:mm:ss a') 
     : '';
@@ -87,20 +81,29 @@ export default function WikipediaPictureOfTheDay() {
     );
   }
 
-  // Always show a placeholder if there's an error or no image
-  if (error || !picture || !imageUrl) {
+  // Always show a placeholder if there's an error or no media
+  if (error || !picture || (!imageUrl && !videoUrl)) {
     return (
       <Card className="mb-2 overflow-hidden shadow-md">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="md:w-[330px] flex-shrink-0 flex items-center justify-center bg-gray-100 h-[220px]">
-              <p className="text-gray-500 text-sm">Picture of the Day unavailable</p>
+              <p className="text-gray-500 text-sm">Picture unavailable</p>
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-2">Picture of the Day</h3>
               <p className="text-gray-500 text-sm">
-                Image could not be loaded. Please check your connection or try again later.
+                Today's picture of the day is unavailable. This isn't your fault - the error is on our end. Picture of the day will be back soon!
               </p>
+              <a 
+                href="https://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center mt-3 text-sm text-primary hover:underline"
+              >
+                Visit Wikipedia
+                <ExternalLink className="ml-1 h-3 w-3" />
+              </a>
             </div>
           </div>
         </CardContent>
@@ -116,7 +119,7 @@ export default function WikipediaPictureOfTheDay() {
     <Card className="mb-2 overflow-hidden shadow-md">
       <CardContent className="p-4">
         <div className="flex flex-col md:flex-row gap-4">
-          {/* Left side: Image */}
+          {/* Left side: Image or Video */}
           <div className="relative md:w-[330px] flex-shrink-0">
             <a 
               href="https://en.wikipedia.org/wiki/Wikipedia:Picture_of_the_day" 
@@ -125,11 +128,29 @@ export default function WikipediaPictureOfTheDay() {
               className="block"
               title="Picture of the Day"
             >
-              <img 
-                src={imageUrl} 
-                alt="Picture of the Day" 
-                className="w-auto mx-auto h-auto max-h-[250px]" 
-              />
+              {isVideo && videoUrl ? (
+                <video 
+                  controls 
+                  poster={imageUrl || undefined}
+                  className="w-auto mx-auto h-auto max-h-[250px]"
+                  width="300"
+                  height="225"
+                >
+                  <source src={videoUrl} type="video/mp4" />
+                  <source src={videoUrl} type="video/webm" />
+                  Your browser does not support the video tag.
+                </video>
+              ) : imageUrl ? (
+                <img 
+                  src={imageUrl} 
+                  alt="Picture of the Day" 
+                  className="w-auto mx-auto h-auto max-h-[250px]" 
+                />
+              ) : (
+                <div className="w-auto mx-auto h-auto max-h-[250px] flex items-center justify-center bg-gray-100 min-h-[200px]">
+                  <p className="text-gray-500 text-sm">Media unavailable</p>
+                </div>
+              )}
             </a>
           </div>
 

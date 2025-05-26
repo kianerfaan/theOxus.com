@@ -39,11 +39,20 @@ export default function PictureOfTheDay() {
   // Create a clean title for display
   const parseTitle = (title: string): string => {
     if (!title) return 'Picture of the Day';
-    // Remove "Wikipedia:Picture of the day/" prefix if it exists
+    
+    // For Wikipedia Picture of the Day, create a simpler title with just the date
+    if (title.includes('Wikipedia:Picture of the day') || title.includes('Wikimedia Commons picture of the day')) {
+      const today = new Date();
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      const month = monthNames[today.getMonth()];
+      const day = today.getDate();
+      return `Picture of the Day, ${month} ${day}`;
+    }
+    
+    // For other titles, clean them up as before
     const titleWithoutPrefix = title.replace(/Wikipedia:Picture of the day\//, '');
-    // Remove "Wikimedia Commons picture of the day for" prefix if it exists
     const titleWithoutWikimediaPrefix = titleWithoutPrefix.replace(/Wikimedia Commons picture of the day for /, '');
-    // Remove any date in parentheses
     return titleWithoutWikimediaPrefix.replace(/\s*\(.*?\)\s*/, '');
   };
   

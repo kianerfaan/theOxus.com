@@ -26,25 +26,25 @@
 }
 
 .dark {
-  --background: 220 60% 10%;
+  --background: 222 84% 5%;
   --foreground: 210 40% 98%;
-  --muted: 220 40% 20%;
-  --muted-foreground: 210 40% 70%;
-  --popover: 220 60% 10%;
+  --muted: 217 32% 18%;
+  --muted-foreground: 215 20% 65%;
+  --popover: 222 84% 5%;
   --popover-foreground: 210 40% 98%;
-  --card: 220 60% 15%;
+  --card: 222 47% 11%;
   --card-foreground: 210 40% 98%;
-  --border: 220 40% 20%;
-  --input: 220 40% 20%;
-  --primary: 220 80% 30%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 45 100% 50%;
-  --secondary-foreground: 220 70% 10%;
-  --accent: 45 70% 30%;
+  --border: 217 32% 18%;
+  --input: 217 32% 18%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 84% 5%;
+  --secondary: 45 100% 65%;
+  --secondary-foreground: 222 84% 5%;
+  --accent: 217 32% 18%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --destructive: 0 62.8% 60%;
   --destructive-foreground: 210 40% 98%;
-  --ring: 45 100% 50%;
+  --ring: 212 95% 83%;
 }
 
 @layer base {
@@ -83,6 +83,123 @@
   background: linear-gradient(to bottom, #FFFFFF, #F0F8FF);
 }
 
+.dark .sidebar {
+  background: linear-gradient(to bottom, hsl(220, 20%, 15%), hsl(220, 20%, 18%));
+  border-right: 1px solid hsl(220, 20%, 25%);
+}
+
+/* Dark mode sidebar text and links */
+.dark .sidebar .text-primary {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.dark .sidebar .text-gray-500 {
+  color: hsl(0, 0%, 70%) !important;
+}
+
+.dark .sidebar .text-secondary {
+  color: hsl(0, 0%, 80%) !important;
+}
+
+.dark .sidebar .hover\:bg-accent:hover {
+  background-color: hsl(220, 20%, 25%) !important;
+}
+
+.dark .sidebar .bg-accent\/50 {
+  background-color: hsl(220, 20%, 25%) !important;
+}
+
+/* Dark mode sidebar footer text */
+.dark .sidebar .text-xs {
+  color: hsl(0, 0%, 70%) !important;
+}
+
+.dark .sidebar .text-gray-400 {
+  color: hsl(0, 0%, 65%) !important;
+}
+
+.dark .sidebar .text-muted-foreground {
+  color: hsl(0, 0%, 70%) !important;
+}
+
+/* Dark mode sidebar header text */
+.dark .sidebar h1 {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.dark .sidebar .font-bold {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.dark .sidebar .text-2xl {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+/* Dark mode sidebar header background */
+.dark .sidebar .bg-gradient-to-r {
+  background: linear-gradient(to right, hsl(220, 20%, 20%), hsl(220, 20%, 25%)) !important;
+}
+
+.dark .sidebar .from-primary\/90 {
+  background: linear-gradient(to right, hsl(220, 20%, 20%), hsl(220, 20%, 25%)) !important;
+}
+
+/* Dark mode category headers in sidebar */
+.dark .sidebar .bg-primary\/90 {
+  background-color: hsl(220, 20%, 22%) !important;
+}
+
+.dark .sidebar .text-primary-foreground {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+/* Dark mode overrides for yellow cards */
+.dark .bg-\[#F2DC5D\] {
+  background-color: hsl(220, 20%, 18%) !important;
+  border: 1px solid hsl(220, 20%, 30%) !important;
+}
+
+.dark .border-\[#E9CD3D\] {
+  border-color: hsl(220, 20%, 30%) !important;
+}
+
+/* Ensure text remains readable in dark cards */
+.dark .text-primary {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.dark .text-primary\/80 {
+  color: hsl(0, 0%, 85%) !important;
+}
+
+.dark .text-primary\/70 {
+  color: hsl(0, 0%, 75%) !important;
+}
+
+.dark .text-primary\/60 {
+  color: hsl(0, 0%, 65%) !important;
+}
+
+/* Fix white badges in dark mode */
+.dark .bg-primary {
+  background-color: hsl(220, 20%, 25%) !important;
+}
+
+.dark .text-white {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+/* Article cards in dark mode */
+.dark .bg-white {
+  background-color: hsl(220, 20%, 18%) !important;
+}
+
+/* Improve card contrast */
+.dark [class*="bg-[#F2DC5D]"] {
+  background-color: hsl(220, 20%, 18%) !important;
+  color: hsl(0, 0%, 95%) !important;
+}
+
 /* Card styling for articles */
 .article-card {
   border-left: 3px solid transparent;
@@ -113,4 +230,11 @@ button.primary:hover {
 .toolbar {
   background: linear-gradient(to right, #F7FBFF, #FFF8E1);
   border-bottom: 2px solid rgba(0, 45, 114, 0.1);
+}
+
+/* Dark theme toolbar */
+.dark .toolbar {
+  background: linear-gradient(to right, hsl(220, 20%, 15%), hsl(220, 20%, 18%));
+  border-bottom: 2px solid hsl(220, 20%, 25%);
+  color: hsl(0, 0%, 95%);
 }
