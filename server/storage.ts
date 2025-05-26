@@ -277,6 +277,27 @@ export class MemStorage implements IStorage {
       isActive: true,
     });
     
+    this.createFeedSource({
+      name: "Forbes 🇭🇰🇺🇸",
+      url: "https://www.forbes.com/business/feed/",
+      category: "Legacy",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "CNBC 🇺🇸",
+      url: "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+      category: "Legacy",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Yahoo Finance 🇺🇸",
+      url: "https://finance.yahoo.com/news/rssindex",
+      category: "Legacy",
+      isActive: true,
+    });
+    
     // Alternative category
     this.createFeedSource({
       name: "ZeroHedge",
@@ -296,6 +317,129 @@ export class MemStorage implements IStorage {
       name: "SCOTUSblog",
       url: "https://follow.it/scotusblog/rss",
       category: "Alternative",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "SeekingAlpha 🇮🇱",
+      url: "https://seekingalpha.com/market_currents.xml",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Blog of Tim Ferriss 🇺🇸",
+      url: "https://tim.blog/feed/",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    // Technology category
+    this.createFeedSource({
+      name: "TechCrunch 🇺🇸",
+      url: "https://techcrunch.com/feed/",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "The Verge 🇺🇸",
+      url: "https://www.theverge.com/rss/index.xml",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Hacker News 🇺🇸",
+      url: "https://news.ycombinator.com/rss",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Ars Technica 🇺🇸",
+      url: "http://feeds.arstechnica.com/arstechnica/index",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "CNET 🇺🇸",
+      url: "https://www.cnet.com/rss/news/",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Gizmodo 🇨🇭",
+      url: "https://gizmodo.com/rss",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Mashable 🇺🇸",
+      url: "http://feeds.mashable.com/Mashable",
+      category: "Technology",
+      isActive: true,
+    });
+    
+    // Space category
+    this.createFeedSource({
+      name: "The Guardian, Space 🇬🇧",
+      url: "https://www.theguardian.com/science/space/rss",
+      category: "Space",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Sky and Telescope 🇺🇸",
+      url: "https://www.skyandtelescope.com/feed/",
+      category: "Space",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "NASA News 🇺🇸",
+      url: "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+      category: "Space",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Space.com 🇬🇧",
+      url: "https://www.space.com/feeds/all",
+      category: "Space",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "New Scientist 🇬🇧",
+      url: "https://www.newscientist.com/subject/space/feed/",
+      category: "Space",
+      isActive: true,
+    });
+    
+    // Sports category
+    
+    this.createFeedSource({
+      name: "Football365 🇬🇧",
+      url: "https://www.football365.com/feed",
+      category: "Sports",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Goal.com 🇺🇸🇬🇧",
+      url: "https://www.goal.com/feeds/en/news",
+      category: "Sports",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "ATP World Tour 🇬🇧🇲🇨🇺🇸🇦🇺",
+      url: "https://www.atptour.com/en/media/rss-feed/xml-feed",
+      category: "Sports",
       isActive: true,
     });
     

@@ -24,6 +24,22 @@ const analysisCache = new Map<string, {
 // Cache expiration time: 1 hour (in milliseconds)
 const CACHE_EXPIRATION = 60 * 60 * 1000;
 
+// Rate limiting for Mistral API
+let lastApiCall = 0;
+const MIN_API_INTERVAL = 1000; // 1 second between calls
+
+// Clean up expired cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  analysisCache.forEach((value, key) => {
+    if (now - value.timestamp > CACHE_EXPIRATION) {
+      keysToDelete.push(key);
+    }
+  });
+  keysToDelete.forEach(key => analysisCache.delete(key));
+}, 300000); // Clean up every 5 minutes
+
 /**
  * Fetches headlines from all sources and performs sentiment analysis
  * @returns Ranked list of news items
@@ -37,8 +53,11 @@ export async function getOxusHeadlines(): Promise<RankedNewsItem[]> {
     return [];
   }
   
-  // Use all sources regardless of category to ensure diverse international sources
-  const sourcesToUse = activeSources;
+  // Filter out blacklisted sources and use all remaining sources regardless of category
+  const sourcesToUse = activeSources.filter(source => 
+    !source.name.includes('Sportskeeda') &&
+    !source.name.includes('ESPN')
+  );
   
   console.log(`Fetching articles from ${sourcesToUse.length} sources for Oxus analysis`);
   
@@ -189,7 +208,16 @@ async function analyzeArticleWithMistral(article: RssItem, retryCount = 0): Prom
   }
   
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 3000; // 3 seconds
+  const RETRY_DELAY = 5000; // 5 seconds
+  
+  // Enforce rate limiting - wait if needed
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCall;
+  if (timeSinceLastCall < MIN_API_INTERVAL) {
+    const waitTime = MIN_API_INTERVAL - timeSinceLastCall;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  lastApiCall = Date.now();
   
   try {
     const prompt = createAnalysisPrompt(article);
@@ -226,12 +254,12 @@ async function analyzeArticleWithMistral(article: RssItem, retryCount = 0): Prom
       
       // If we're being rate limited and haven't exceeded max retries
       if (response.status === 429 && retryCount < MAX_RETRIES) {
-        console.log(`Rate limited. Retry attempt ${retryCount + 1} of ${MAX_RETRIES} in ${RETRY_DELAY/1000} seconds...`);
+        const backoffDelay = RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`Rate limited. Retry attempt ${retryCount + 1} of ${MAX_RETRIES} in ${backoffDelay/1000} seconds...`);
         
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        // Wait before retrying with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
         
-        // Increase the delay for subsequent retries
         return analyzeArticleWithMistral(article, retryCount + 1);
       }
       

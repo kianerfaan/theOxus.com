@@ -34,6 +34,19 @@ export const feedSources = pgTable("feed_sources", {
 });
 
 /**
+ * Forum posts table schema
+ * Stores community forum posts with auto-deletion after 7 days
+ */
+export const forumPosts = pgTable("forum_posts", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  upvotes: integer("upvotes").notNull().default(0),
+  downvotes: integer("downvotes").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deleteAt: timestamp("delete_at").notNull(),
+});
+
+/**
  * Zod schema for feed source creation/insertion
  * Used for validation when adding new feed sources
  */
@@ -53,12 +66,23 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+/**
+ * Zod schema for forum post creation/insertion
+ * Used for validation when creating new forum posts
+ */
+export const insertForumPostSchema = createInsertSchema(forumPosts).pick({
+  content: true,
+});
+
 // TypeScript type definitions derived from the Zod schemas and database tables
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertFeedSource = z.infer<typeof insertFeedSourceSchema>;
 export type FeedSource = typeof feedSources.$inferSelect;
+
+export type InsertForumPost = z.infer<typeof insertForumPostSchema>;
+export type ForumPost = typeof forumPosts.$inferSelect;
 
 /**
  * RSS item type definition
@@ -74,7 +98,11 @@ export type RssItem = {
   contentSnippet: string;  // Text-only summary of the content
   source: string;          // URL of the RSS feed source
   sourceName: string;      // Display name of the source
+  imageUrl?: string;       // Optional image URL
+  videoUrl?: string;       // Optional video URL
+  isVideo?: boolean;       // Flag indicating if this is a video item
   isWikipediaCurrentEvents?: boolean; // Flag for Wikipedia current events
+  isWikipediaPictureOfTheDay?: boolean; // Flag for Wikipedia Picture of the Day
 };
 
 /**
