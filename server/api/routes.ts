@@ -809,17 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get total visit count from page_visits table
-  app.get("/api/visit-count", async (req: Request, res: Response) => {
-    try {
-      const result = await pool.query('SELECT MAX(id) as total_visits FROM page_visits');
-      const totalVisits = result.rows[0]?.total_visits || 0;
-      res.json({ totalVisits });
-    } catch (error) {
-      console.error("Error fetching visit count:", error);
-      res.status(500).json({ message: "Failed to fetch visit count" });
-    }
-  });
+
 
   // Get 30-day average load time for top news endpoint
   app.get("/api/average-load-time", async (req: Request, res: Response) => {

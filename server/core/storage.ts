@@ -176,7 +176,7 @@ export class MemStorage implements IStorage {
       name: "BBC News",
       url: "https://feeds.bbci.co.uk/news/world/rss.xml",
       category: "Legacy",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -232,7 +232,7 @@ export class MemStorage implements IStorage {
       name: "Times of India",
       url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
       category: "Legacy",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -253,7 +253,7 @@ export class MemStorage implements IStorage {
       name: "AP News",
       url: "https://rss.app/feeds/UVhYySfiPPex3v8H.xml",
       category: "Legacy",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -288,7 +288,7 @@ export class MemStorage implements IStorage {
       name: "CNBC 🇺🇸",
       url: "https://www.cnbc.com/id/100003114/device/rss/rss.html",
       category: "Legacy",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -303,7 +303,7 @@ export class MemStorage implements IStorage {
       name: "ZeroHedge",
       url: "https://cms.zerohedge.com/fullrss2.xml",
       category: "Alternative",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -367,7 +367,7 @@ export class MemStorage implements IStorage {
       name: "Investing.com 🇭🇰",
       url: "https://www.investing.com/rss/news_25.rss",
       category: "Finance",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -381,14 +381,14 @@ export class MemStorage implements IStorage {
       name: "Investopedia 🇺🇸",
       url: "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedName=rss_articles",
       category: "Finance",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "Cointelegraph 🇺🇸",
       url: "https://cointelegraph.com/rss",
       category: "Finance",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -403,21 +403,21 @@ export class MemStorage implements IStorage {
       name: "TechCrunch 🇺🇸",
       url: "https://techcrunch.com/feed/",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "The Verge 🇺🇸",
       url: "https://www.theverge.com/rss/index.xml",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "Hacker News 🇺🇸",
       url: "https://news.ycombinator.com/rss",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -431,21 +431,21 @@ export class MemStorage implements IStorage {
       name: "CNET 🇺🇸",
       url: "https://www.cnet.com/rss/news/",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "Gizmodo 🇨🇭",
       url: "https://gizmodo.com/rss",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "Mashable 🇺🇸",
       url: "http://feeds.mashable.com/Mashable",
       category: "Technology",
-      isActive: true,
+      isActive: false,
     });
     
     // Space category
@@ -490,7 +490,7 @@ export class MemStorage implements IStorage {
       name: "ATP World Tour 🇬🇧🇲🇨🇺🇸🇦🇺",
       url: "https://www.atptour.com/en/media/rss-feed/xml-feed",
       category: "Sports",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -564,14 +564,14 @@ export class MemStorage implements IStorage {
       name: "Billboard",
       url: "https://www.billboard.com/feed/",
       category: "Entertainment",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
       name: "GQ",
       url: "https://www.gq.com/feed/rss",
       category: "Entertainment",
-      isActive: true,
+      isActive: false,
     });
     
     this.createFeedSource({
@@ -592,7 +592,7 @@ export class MemStorage implements IStorage {
       name: "Mashable",
       url: "http://feeds.mashable.com/mashable",
       category: "Entertainment",
-      isActive: true,
+      isActive: false,
     });
     
     // Note: Ticker Tape widget is implemented directly in the UI,
