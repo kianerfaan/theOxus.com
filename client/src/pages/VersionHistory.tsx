@@ -5,9 +5,16 @@ import { Badge } from "@/components/ui/badge";
 export default function VersionHistory() {
   const versions = [
     {
-      version: "16",
+      version: "17",
       date: "May 30, 2025",
       isCurrent: true,
+      description: "Enhanced Picture of the Day widget with three-state toggle system (Off/News Feed/Current Events) replacing the simple on/off switch. Set default location to Current Events tab for better user experience. Continued C integration progress for RSS processing optimization. Removed view counter from sidebar header for cleaner interface.",
+      hasGitHubRelease: true
+    },
+    {
+      version: "16",
+      date: "May 30, 2025",
+      isCurrent: false,
       description: "Optimized sidebar and homepage layout by removing dead space throughout the interface. Moved Google Sign-In button to a centered position below customization options for improved user flow. Reduced padding and margins across components for more efficient screen space utilization.",
       hasGitHubRelease: false
     },

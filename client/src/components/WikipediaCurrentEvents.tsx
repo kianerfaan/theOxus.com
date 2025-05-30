@@ -3,13 +3,15 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ArticleCard from "./news/ArticleCard";
 import Toolbar from "./layout/Toolbar";
+import PictureOfTheDay from "./PictureOfTheDay";
 import { useEffect } from "react";
 
 interface WikipediaCurrentEventsProps {
   onError: (message: string) => void;
+  pictureOfTheDayLocation?: 'off' | 'news-feed' | 'current-events';
 }
 
-export default function WikipediaCurrentEvents({ onError }: WikipediaCurrentEventsProps) {
+export default function WikipediaCurrentEvents({ onError, pictureOfTheDayLocation = 'off' }: WikipediaCurrentEventsProps) {
   const {
     wikipediaEvents,
     isLoading,
@@ -52,6 +54,13 @@ export default function WikipediaCurrentEvents({ onError }: WikipediaCurrentEven
         </div>
       ) : wikipediaEvents && wikipediaEvents.length > 0 ? (
         <div className="space-y-6">
+          {/* Picture of the Day */}
+          {pictureOfTheDayLocation === 'current-events' && (
+            <div className="mt-2">
+              <PictureOfTheDay />
+            </div>
+          )}
+          
           {wikipediaEvents.map(article => (
             <ArticleCard key={article.id} article={article} />
           ))}

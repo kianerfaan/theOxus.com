@@ -41,8 +41,8 @@ interface NewsFeedProps {
   searchEnabled?: boolean;
   /** Callback for toggling the search bar */
   onSearchToggle?: (enabled: boolean) => void;
-  /** Whether the picture of the day is enabled */
-  pictureOfTheDayEnabled?: boolean;
+  /** Picture of the day location setting */
+  pictureOfTheDayLocation?: 'off' | 'news-feed' | 'current-events';
 }
 
 /**
@@ -79,7 +79,7 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
       onTopNewsToggle,       // Callback for toggling the top news section
       searchEnabled = false, // Whether the search bar is enabled (default: false)
       onSearchToggle,        // Callback for toggling the search bar
-      pictureOfTheDayEnabled = false // Whether the picture of the day is enabled (default: false)
+      pictureOfTheDayLocation = 'off' // Picture of the day location setting (default: off)
     } = props;
     
     // State for pagination and articles
@@ -218,7 +218,7 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
             </div>
             
             {/* Picture of the Day */}
-            {pictureOfTheDayEnabled && (
+            {pictureOfTheDayLocation === 'news-feed' && (
               <div className="mt-2">
                 <PictureOfTheDay />
               </div>

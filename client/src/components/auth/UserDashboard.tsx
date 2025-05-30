@@ -1,12 +1,9 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { signOutUser } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
-import { Link } from "wouter";
 
 interface UserDashboardProps {
   open: boolean;
@@ -16,25 +13,6 @@ interface UserDashboardProps {
 export function UserDashboard({ open, onOpenChange }: UserDashboardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
-  const [termsOfServiceAgreed, setTermsOfServiceAgreed] = useState(false);
-
-  // Handle checkbox changes - allow clicking on/off
-  const handlePrivacyPolicyChange = (checked: boolean | "indeterminate") => {
-    if (checked === true) {
-      setPrivacyPolicyAgreed(true);
-    } else if (checked === false) {
-      setPrivacyPolicyAgreed(false);
-    }
-  };
-
-  const handleTermsOfServiceChange = (checked: boolean | "indeterminate") => {
-    if (checked === true) {
-      setTermsOfServiceAgreed(true);
-    } else if (checked === false) {
-      setTermsOfServiceAgreed(false);
-    }
-  };
 
   const handleSignOut = async () => {
     try {
@@ -105,42 +83,7 @@ export function UserDashboard({ open, onOpenChange }: UserDashboardProps) {
               manage your subscription
             </Button>
 
-            {/* Privacy Policy and Terms of Service Acknowledgment */}
-            <div className="space-y-3 py-3 border-t border-gray-200 dark:border-gray-700">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="privacy-policy"
-                  checked={privacyPolicyAgreed}
-                  onCheckedChange={handlePrivacyPolicyChange}
-                />
-                <label htmlFor="privacy-policy" className="text-sm text-gray-600 dark:text-gray-400">
-                  I have read and agree to the{" "}
-                  <Link href="/privacy">
-                    <a className="text-blue-500 hover:text-blue-600 underline" onClick={() => onOpenChange(false)}>
-                      Privacy Policy
-                    </a>
-                  </Link>
-                  {" "}(June 1, 2025)
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms-of-service"
-                  checked={termsOfServiceAgreed}
-                  onCheckedChange={handleTermsOfServiceChange}
-                />
-                <label htmlFor="terms-of-service" className="text-sm text-gray-600 dark:text-gray-400">
-                  I have read and agree to the{" "}
-                  <Link href="/terms">
-                    <a className="text-blue-500 hover:text-blue-600 underline" onClick={() => onOpenChange(false)}>
-                      Terms of Service
-                    </a>
-                  </Link>
-                  {" "}(June 1, 2025)
-                </label>
-              </div>
-            </div>
+
 
             <Button
               onClick={handleSignOut}

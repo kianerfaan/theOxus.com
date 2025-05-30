@@ -29,8 +29,8 @@ interface SidebarProps {
   onTopNewsToggle?: (enabled: boolean) => void;
   searchEnabled?: boolean;
   onSearchToggle?: (enabled: boolean) => void;
-  pictureOfTheDayEnabled?: boolean;
-  onPictureOfTheDayToggle?: (enabled: boolean) => void;
+  pictureOfTheDayLocation?: 'off' | 'news-feed' | 'current-events';
+  onPictureOfTheDayLocationChange?: (location: 'off' | 'news-feed' | 'current-events') => void;
   onSourcesChanged?: () => void;
 }
 
@@ -43,34 +43,12 @@ export default function Sidebar({
   onTopNewsToggle,
   searchEnabled = false,
   onSearchToggle,
-  pictureOfTheDayEnabled = true,
-  onPictureOfTheDayToggle,
+  pictureOfTheDayLocation = 'current-events',
+  onPictureOfTheDayLocationChange,
   onSourcesChanged
 }: SidebarProps) {
   const { toast } = useToast();
   const [sortByCountry, setSortByCountry] = useState(false);
-  const [visitedCount, setVisitedCount] = useState(0);
-
-  // Fetch global visit count from database - only once on mount
-  useEffect(() => {
-    const fetchVisitCount = async () => {
-      try {
-        const response = await fetch('/api/visit-count');
-        const data = await response.json();
-        setVisitedCount(data.totalVisits);
-      } catch (error) {
-        console.error('Error fetching visit count:', error);
-        setVisitedCount(0);
-      }
-    };
-
-    fetchVisitCount();
-    
-    // Update the count every 1 minute
-    const interval = setInterval(fetchVisitCount, 1 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
 
   // Helper function to extract country flags from source names
   const extractCountryFlags = (sourceName: string): string => {
@@ -232,10 +210,7 @@ export default function Sidebar({
           Kian Erfaan
         </a></p>
           <p className="text-xs text-secondary/70">
-            <a href="/version-history" className="hover:underline">version 16, last updated: May 30, 2025</a>
-          </p>
-          <p className="text-xs text-secondary/70">
-            Viewed <span className="font-semibold text-white">{visitedCount.toLocaleString()}</span> times
+            <a href="/version-history" className="hover:underline">version 17, last updated: May 30, 2025</a>
           </p>
       </div>
 
@@ -449,17 +424,19 @@ export default function Sidebar({
                       <span className="text-sm mr-2">Picture of the Day</span>
                     </div>
                     <div className="flex items-center space-x-2 ml-2">
-                      <div className="flex-shrink-0">
-                        <Switch
-                          checked={pictureOfTheDayEnabled}
-                          onCheckedChange={onPictureOfTheDayToggle}
-                          id="picture-of-the-day-sidebar-switch"
-                          className="h-4 w-7"
-                        />
-                      </div>
-                      <span className="text-xs flex-shrink-0 min-w-8 text-right">
-                        {pictureOfTheDayEnabled ? "On" : "Off"}
-                      </span>
+                      <button
+                        onClick={() => {
+                          const states: ('off' | 'news-feed' | 'current-events')[] = ['off', 'news-feed', 'current-events'];
+                          const currentIndex = states.indexOf(pictureOfTheDayLocation);
+                          const nextIndex = (currentIndex + 1) % states.length;
+                          onPictureOfTheDayLocationChange?.(states[nextIndex]);
+                        }}
+                        className="text-xs font-medium text-primary hover:bg-accent/50 px-2 py-1 rounded border border-border"
+                      >
+                        {pictureOfTheDayLocation === 'off' && 'Off'}
+                        {pictureOfTheDayLocation === 'news-feed' && 'News Feed'}
+                        {pictureOfTheDayLocation === 'current-events' && 'Current Events'}
+                      </button>
                     </div>
                   </div>
 
