@@ -1,0 +1,18 @@
+{
+  "name": "theoxus-native-dateutils",
+  "version": "1.0.0",
+  "description": "Native C date utilities for theOxus RSS processing",
+  "main": "index.js",
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "configure": "node-gyp configure"
+  },
+  "gypfile": true,
+  "dependencies": {
+    "node-addon-api": "^8.0.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^10.0.0"
+  }
+}
