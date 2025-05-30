@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Github, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getSourceFlag } from "@/lib/sourceFlags";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "./ThemeToggle";
 import { AuthStatus } from "@/components/auth/AuthStatus";
 // Logo component based on your design
 const LogoIcon = () => (
@@ -21,7 +21,6 @@ const LogoIcon = () => (
 );
 
 interface SidebarProps {
-  onAddSource: () => void;
   onSelectSource: (id: number | undefined) => void;
   selectedSourceId?: number;
   tickerEnabled: boolean;
@@ -32,10 +31,10 @@ interface SidebarProps {
   onSearchToggle?: (enabled: boolean) => void;
   pictureOfTheDayEnabled?: boolean;
   onPictureOfTheDayToggle?: (enabled: boolean) => void;
+  onSourcesChanged?: () => void;
 }
 
 export default function Sidebar({ 
-  onAddSource, 
   onSelectSource, 
   selectedSourceId, 
   tickerEnabled, 
@@ -45,13 +44,14 @@ export default function Sidebar({
   searchEnabled = false,
   onSearchToggle,
   pictureOfTheDayEnabled = true,
-  onPictureOfTheDayToggle
+  onPictureOfTheDayToggle,
+  onSourcesChanged
 }: SidebarProps) {
   const { toast } = useToast();
   const [sortByCountry, setSortByCountry] = useState(false);
   const [visitedCount, setVisitedCount] = useState(0);
 
-  // Fetch global visit count from database
+  // Fetch global visit count from database - only once on mount
   useEffect(() => {
     const fetchVisitCount = async () => {
       try {
@@ -66,8 +66,8 @@ export default function Sidebar({
 
     fetchVisitCount();
     
-    // Set up polling to update the count every 30 seconds
-    const interval = setInterval(fetchVisitCount, 30000);
+    // Update the count every 1 minute
+    const interval = setInterval(fetchVisitCount, 1 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
@@ -148,9 +148,11 @@ export default function Sidebar({
     return countryMap[firstFlag] || countryMap[flags] || 'International';
   };
   
-  // State for collapsible categories
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
-  const [customizationCollapsed, setCustomizationCollapsed] = useState(false);
+  // State for collapsible categories - collapsed by default
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
+    new Set(['Legacy', 'Technology', 'Finance', 'Alternative', 'Entertainment', 'Sports', 'Space', 'Academic', 'upcoming-features'])
+  );
+  const [customizationCollapsed, setCustomizationCollapsed] = useState(true);
 
   // Toggle category collapse state
   const toggleCategoryCollapse = (category: string) => {
@@ -173,9 +175,21 @@ export default function Sidebar({
     mutationFn: async ({ id, isActive }: { id: number, isActive: boolean }) => {
       await apiRequest('PATCH', `/api/sources/${id}`, { isActive });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['/api/sources'] });
       queryClient.invalidateQueries({ queryKey: ['/api/news'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/top-news'] });
+      
+      // Trigger immediate background processing for top news analysis
+      try {
+        await apiRequest('POST', '/api/refresh-top-news');
+        console.log('Background processing triggered after source toggle');
+      } catch (error) {
+        console.error('Failed to trigger background processing:', error);
+      }
+      
+      // Notify parent component about source changes
+      onSourcesChanged?.();
     },
     onError: (error) => {
       toast({
@@ -186,51 +200,19 @@ export default function Sidebar({
     }
   });
 
-  // Mutation removed as delete button is no longer shown
-  // const deleteSourceMutation = useMutation({
-  //   mutationFn: async (id: number) => {
-  //     await apiRequest('DELETE', `/api/sources/${id}`);
-  //   },
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ['/api/sources'] });
-  //     queryClient.invalidateQueries({ queryKey: ['/api/news'] });
-  //     
-  //     if (selectedSourceId) {
-  //       onSelectSource(undefined);
-  //     }
-  //     
-  //     toast({
-  //       title: 'Success',
-  //       description: 'Feed source removed successfully',
-  //     });
-  //   },
-  //   onError: (error) => {
-  //     toast({
-  //       title: 'Error',
-  //       description: 'Failed to delete feed source',
-  //       variant: 'destructive',
-  //     });
-  //   }
-  // });
+
 
   const handleToggleSource = (id: number, currentValue: boolean) => {
     toggleSourceMutation.mutate({ id, isActive: !currentValue });
   };
 
-  // Function removed as delete button is no longer shown
-  // const handleDeleteSource = (id: number, e: React.MouseEvent) => {
-  //   e.stopPropagation();
-  //   
-  //   if (confirm('Are you sure you want to remove this feed source?')) {
-  //     deleteSourceMutation.mutate(id);
-  //   }
-  // };
+
 
   return (
     <aside className="sidebar w-64 border-r border-accent h-full overflow-y-auto flex flex-col">
-      <div className="p-4 border-b border-accent bg-gradient-to-r from-primary/90 to-primary">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
+      <div className="p-3 border-b border-accent bg-gradient-to-r from-primary/90 to-primary">
+        <div className="flex items-center justify-center mb-1">
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => window.location.reload()}
               className="hover:scale-105 transition-transform cursor-pointer"
@@ -238,11 +220,10 @@ export default function Sidebar({
             >
               <LogoIcon />
             </button>
-            <h1 className="text-2xl font-bold text-white">theOxus.com</h1>
+            <h1 className="text-xl font-bold text-white">theOxus.com</h1>
           </div>
-          <AuthStatus />
         </div>
-        <p className="text-sm text-secondary/90">Built by <a 
+        <p className="text-xs text-secondary/90">Built by <a 
           href="https://x.com/kianerfaan" 
           target="_blank" 
           rel="noopener noreferrer"
@@ -250,16 +231,16 @@ export default function Sidebar({
         >
           Kian Erfaan
         </a></p>
-          <p className="text-xs text-secondary/70 mt-1">
-            <a href="/version-history" className="hover:underline">version 11, last updated: May 26, 2025</a>
+          <p className="text-xs text-secondary/70">
+            <a href="/version-history" className="hover:underline">version 16, last updated: May 30, 2025</a>
           </p>
-          <p className="text-xs text-secondary/70 mt-1">
+          <p className="text-xs text-secondary/70">
             Viewed <span className="font-semibold text-white">{visitedCount.toLocaleString()}</span> times
           </p>
       </div>
 
       {/* Navigation Links */}
-      <nav className="mt-2">
+      <nav className="mt-1">
         <ul>
           {/* Home button (renamed from All Sources) */}
           <li 
@@ -274,56 +255,101 @@ export default function Sidebar({
               console.log("Refreshing feed from Home click");
             }}
           >
-            <button className="flex w-full items-center px-4 py-2 text-primary hover:bg-accent">
+            <button className="flex w-full items-center px-3 py-1.5 text-primary hover:bg-accent">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              Home
+              River of News
             </button>
           </li>
 
-          {/* Calendars Section */}
-          <li className="sidebar-item mt-1">
-            <a href="/calendar" className="flex w-full items-center px-4 py-1.5 text-primary hover:bg-accent rounded-md font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Calendar
-            </a>
-          </li>
+          {/* Upcoming Features Section */}
+          <li className="sidebar-item mt-2">
+            <div className="mb-1">
+              <div className="flex justify-between items-center text-xs font-semibold px-3 py-1.5 uppercase text-black bg-yellow-400">
+                <div className="flex items-center truncate mr-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newCollapsed = new Set(collapsedCategories);
+                      if (collapsedCategories.has('upcoming-features')) {
+                        newCollapsed.delete('upcoming-features');
+                      } else {
+                        newCollapsed.add('upcoming-features');
+                      }
+                      setCollapsedCategories(newCollapsed);
+                    }}
+                    className="mr-1.5 hover:bg-secondary/30 rounded p-0.5 transition-colors"
+                    aria-label="Toggle Upcoming Features category"
+                  >
+                    {collapsedCategories.has('upcoming-features') ? (
+                      <ChevronRight className="h-3 w-3" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3" />
+                    )}
+                  </button>
+                  <span className="mr-1.5">🔨🔧</span>
+                  <h3 className="truncate">Upcoming Features</h3>
+                </div>
+              </div>
+              
+              {!collapsedCategories.has('upcoming-features') && (
+                <div className="space-y-1 px-4 pt-2">
+                  {/* Calendar */}
+                  <div className="py-2 px-1 rounded hover:bg-accent/50">
+                    <a href="/calendar" className="flex w-full items-center text-primary hover:text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-sm">Calendar</span>
+                    </a>
+                  </div>
 
-          {/* Forum Section */}
-          <li className="sidebar-item mt-1">
-            <a href="/forum" className="flex w-full items-center px-4 py-1.5 text-primary hover:bg-accent rounded-md font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z" />
-              </svg>
-              Forum
-              <span className="ml-2 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">New!</span>
-            </a>
-          </li>
+                  {/* Forum */}
+                  <div className="py-2 px-1 rounded hover:bg-accent/50">
+                    <a href="/forum" className="flex w-full items-center text-primary hover:text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z" />
+                      </svg>
+                      <span className="text-sm">Forum</span>
+                    </a>
+                  </div>
 
-          {/* Library Section */}
-          <li className="sidebar-item mt-1">
-            <a href="/library" className="flex w-full items-center px-4 py-1.5 text-primary hover:bg-accent rounded-md font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              Library
-            </a>
+                  {/* Library */}
+                  <div className="py-2 px-1 rounded hover:bg-accent/50">
+                    <a href="/library" className="flex w-full items-center text-primary hover:text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <span className="text-sm">Library</span>
+                    </a>
+                  </div>
+
+                  {/* Market */}
+                  <div className="py-2 px-1 rounded hover:bg-accent/50">
+                    <a href="/market" className="flex w-full items-center text-primary hover:text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      <span className="text-sm">Market</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
           </li>
 
           {/* Customization Section */}
-          <li className="sidebar-item mt-4">
-            <div className="mb-2">
-              <div className="flex justify-between items-center text-xs font-semibold px-5 py-2 uppercase text-primary-foreground bg-primary/90">
-                <div className="flex items-center truncate mr-3">
+          <li className="sidebar-item mt-2">
+            <div className="mb-1">
+              <div className="flex justify-between items-center text-xs font-semibold px-3 py-1.5 uppercase text-black bg-yellow-400">
+                <div className="flex items-center truncate mr-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setCustomizationCollapsed(!customizationCollapsed);
                     }}
-                    className="mr-2 hover:bg-secondary/30 rounded p-0.5 transition-colors"
+                    className="mr-1.5 hover:bg-secondary/30 rounded p-0.5 transition-colors"
                     aria-label="Toggle Customization category"
                   >
                     {customizationCollapsed ? (
@@ -337,7 +363,7 @@ export default function Sidebar({
               </div>
               
               {!customizationCollapsed && (
-                <div className="space-y-1 px-4 pt-2">
+                <div className="space-y-0.5 px-3 pt-1">
                   {/* Ticker Tape Toggle */}
                   <div 
                     className={cn(
@@ -480,19 +506,16 @@ export default function Sidebar({
         </ul>
       </nav>
 
+      {/* Google Sign-In Section */}
+      <div className="mt-3 px-3 flex justify-center">
+        <AuthStatus />
+      </div>
+
       {/* Feed Sources Section */}
-      <div className="mt-6">
-        <div className="flex justify-between items-center mb-2 px-4">
+      <div className="mt-4">
+        <div className="flex justify-between items-center mb-3 px-4">
           <h2 className="font-bold text-sm uppercase text-gray-500">Feed Sources</h2>
-          <button 
-            className="text-secondary hover:text-primary"
-            onClick={onAddSource}
-            aria-label="Add source"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          </button>
+
         </div>
 
         {isLoading ? (
@@ -588,7 +611,7 @@ export default function Sidebar({
               })()
             ) : (
               // Group sources by category (original logic)
-              ['Technology', 'Legacy', 'Alternative', 'Money & Markets', 'Frontier Tech', 'Space', 'Sports'].map(category => {
+              ['Legacy', 'Technology', 'Finance', 'Alternative', 'Entertainment', 'Sports', 'Space', 'Academic'].map(category => {
                 // Get sources in this category and sort them alphabetically by name
                 const categoryItems = sources
                   .filter(source => source.category === category)
@@ -598,23 +621,15 @@ export default function Sidebar({
                 if (categoryItems.length === 0) return null;
 
                 let categoryLabel = category;
-                if (category === 'Technology') {
-                  categoryLabel = `${category} (New!) (${categoryItems.length})`;
-                } else if (category === 'Space') {
-                  categoryLabel = `${category} (New!) (${categoryItems.length})`;
-                } else if (category === 'Sports') {
-                  categoryLabel = `${category} (New!) (${categoryItems.length})`;
-                } else {
-                  categoryLabel = `${category} (${categoryItems.length})`;
-                }
+                categoryLabel = `${category} (${categoryItems.length})`;
 
                 // Check if this category should be collapsible
-                const isCollapsible = ['Technology', 'Legacy', 'Alternative', 'Space', 'Sports'].includes(category);
+                const isCollapsible = ['Legacy', 'Technology', 'Finance', 'Alternative', 'Entertainment', 'Sports', 'Space', 'Academic'].includes(category);
                 const isCollapsed = collapsedCategories.has(category);
 
                 return (
-                <div key={category} className="mb-4">
-                  <div className="flex justify-between items-center text-xs font-semibold px-5 py-2 uppercase text-primary-foreground bg-primary/90">
+                <div key={category} className="mb-2">
+                  <div className="flex justify-between items-center text-xs font-semibold px-3 py-1.5 uppercase text-primary-foreground bg-primary/90">
                     <div className="flex items-center truncate mr-3">
                       {isCollapsible && (
                         <button
@@ -653,6 +668,20 @@ export default function Sidebar({
 
                           // Refresh the news feed data
                           queryClient.invalidateQueries({ queryKey: ['/api/news'] });
+
+                          // Refresh top news data to reflect source changes
+                          queryClient.invalidateQueries({ queryKey: ['/api/top-news'] });
+
+                          // Trigger immediate background processing for top news analysis
+                          try {
+                            await apiRequest('POST', '/api/refresh-top-news');
+                            console.log('Background processing triggered after category toggle');
+                          } catch (error) {
+                            console.error('Failed to trigger background processing:', error);
+                          }
+
+                          // Notify parent component about source changes
+                          onSourcesChanged?.();
 
                           toast({
                             title: "Success",
@@ -703,6 +732,7 @@ export default function Sidebar({
                               <span className="ml-1">{getSourceFlag(source.name)}</span>
                             )}
                           </span>
+
                         </div>
                       );
                     })}
@@ -718,24 +748,10 @@ export default function Sidebar({
 
       {/* Footer with copyright info */}
       <div className="mt-auto p-4 border-t border-accent text-xs text-gray-500">
-        {/* Blacklist Link - smaller version in footer */}
-        <div className="text-center mb-3">
-          <a href="/blacklist" className="inline-flex items-center px-2 py-1 text-xs text-primary hover:bg-accent rounded-md hover:underline">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-            Blacklist
-          </a>
-        </div>
+
         
         <p className="text-center">
-          <a href="https://github.com/kianerfaan/theOxus.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Open Source under Apache-2.0</a>
-        </p>
-        <p className="text-center mt-1">
           © 2025 theOxus.com
-        </p>
-        <p className="text-center mt-1 text-xs">
-          Version 8 • Updated May 25, 2025
         </p>
         <div className="flex justify-center space-x-4 mt-2">
           <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>

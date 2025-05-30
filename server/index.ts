@@ -8,8 +8,9 @@
  */
 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./api/routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startBackgroundJobs } from "./services/backgroundJobs";
 
 // Initialize Express application
 const app = express();
@@ -100,5 +101,8 @@ app.use((req, res, next) => {
     reusePort: true, // Allow port reuse for better load distribution
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start background jobs after server is running
+    startBackgroundJobs();
   });
 })();

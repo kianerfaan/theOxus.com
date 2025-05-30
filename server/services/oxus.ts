@@ -1,7 +1,8 @@
-import { RssItem, RankedNewsItem } from '../shared/schema';
+import { RssItem, RankedNewsItem } from '@shared/schema';
 import fetch from 'node-fetch';
 import Parser from 'rss-parser';
-import { storage } from './storage';
+import { storage } from '../core/storage';
+import { aiHttpClient, rssHttpClient, AI_CIRCUIT_BREAKER_CONFIG, RSS_CIRCUIT_BREAKER_CONFIG } from '../utils/resilience';
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
@@ -70,6 +71,22 @@ export async function getOxusHeadlines(): Promise<RankedNewsItem[]> {
       ]
     }
   });
+
+  /**
+   * Resilient RSS parsing function for Oxus module
+   */
+  async function parseRSSWithResilience(url: string): Promise<any> {
+    const response = await rssHttpClient.request(url, {
+      headers: {
+        'User-Agent': 'theOxus RSS Reader/1.0',
+        'Accept': 'application/rss+xml, application/xml, text/xml'
+      },
+      timeout: 10000
+    }, RSS_CIRCUIT_BREAKER_CONFIG);
+    
+    const text = await response.text();
+    return parser.parseString(text);
+  }
   
   try {
     // Fetch articles from all selected sources
@@ -78,7 +95,7 @@ export async function getOxusHeadlines(): Promise<RankedNewsItem[]> {
     // Create fetch promises for all sources
     const fetchPromises = sourcesToUse.map(async (source) => {
       try {
-        const feed = await parser.parseURL(source.url);
+        const feed = await parseRSSWithResilience(source.url);
         
         if (feed.items && feed.items.length > 0) {
           // Convert feed items to RssItems and add to the collection
@@ -222,7 +239,7 @@ async function analyzeArticleWithMistral(article: RssItem, retryCount = 0): Prom
   try {
     const prompt = createAnalysisPrompt(article);
     
-    const response = await fetch(MISTRAL_API_URL, {
+    const response = await aiHttpClient.request(MISTRAL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -246,7 +263,7 @@ async function analyzeArticleWithMistral(article: RssItem, retryCount = 0): Prom
         ],
         response_format: { type: "json_object" }
       })
-    });
+    }, AI_CIRCUIT_BREAKER_CONFIG);
     
     if (!response.ok) {
       const errorData = await response.text();

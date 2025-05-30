@@ -26,6 +26,12 @@ export default function Forum() {
     enabled: true,
   });
 
+  // Fetch community members count
+  const { data: communityData } = useQuery({
+    queryKey: ['/api/community-members-count'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   // Create post mutation
   const createPostMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -173,8 +179,10 @@ export default function Forum() {
               <div className="flex items-center gap-3">
                 <Users className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold">—</p>
-                  <p className="text-sm text-muted-foreground">Community Members</p>
+                  <p className="text-2xl font-bold">
+                    {communityData?.activeMembersLast7Days ?? 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Community Members (Last 7 Days)</p>
                 </div>
               </div>
             </CardContent>

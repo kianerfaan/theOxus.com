@@ -1,7 +1,8 @@
 import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Newspaper } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Newspaper, RefreshCw, Clock } from "lucide-react";
 import { useTopNews } from "@/hooks/useTopNews";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -52,61 +53,26 @@ const TopNewsCardSkeleton = () => {
 
 const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
   function TopNewsCardComponent({ isVisible }, ref) {
-    const { topNews, isLoading, isError, refetch } = useTopNews();
+    const { topNews, isLoading, isError, manualRefresh, lastUpdated } = useTopNews();
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [elapsedTime, setElapsedTime] = useState(0);
-    const [loadStartTime, setLoadStartTime] = useState<number | null>(null);
     const [loadTime, setLoadTime] = useState<number | null>(null);
-    const [showSpinner, setShowSpinner] = useState(false);
-    const [isTimerActive, setIsTimerActive] = useState(false);
+    const [loadStartTime, setLoadStartTime] = useState<number | null>(null);
     const [avgLoadTime, setAvgLoadTime] = useState<number | null>(null);
     
-    // Start timer when loading begins
+    // Track load time for display
     useEffect(() => {
-      if (isLoading && !isTimerActive) {
+      if (isLoading && !loadStartTime) {
         setLoadStartTime(Date.now());
         setLoadTime(null);
-        setElapsedTime(0);
-        setShowSpinner(false);
-        setIsTimerActive(true);
-      } else if (!isLoading) {
-        setIsTimerActive(false);
-      }
-    }, [isLoading, isTimerActive]);
-    
-    // Handle elapsed time counter
-    useEffect(() => {
-      let timer: NodeJS.Timeout;
-      
-      if (isTimerActive) {
-        timer = setInterval(() => {
-          setElapsedTime(prev => {
-            const newTime = prev + 0.1;
-            if (newTime >= 7) {
-              setShowSpinner(true);
-            }
-            return newTime;
-          });
-        }, 100); // Update every 100ms for smooth decimal counting
-      }
-      
-      return () => {
-        if (timer) clearInterval(timer);
-      };
-    }, [isTimerActive]);
-    
-    // Calculate load time when loading completes
-    useEffect(() => {
-      if (!isLoading && loadStartTime) {
+      } else if (!isLoading && loadStartTime) {
         const endTime = Date.now();
         const timeTaken = (endTime - loadStartTime) / 1000;
         setLoadTime(timeTaken);
         setLoadStartTime(null);
-        setShowSpinner(false);
       }
     }, [isLoading, loadStartTime]);
 
-    // Fetch 30-day average load time
+    // Fetch average load time
     useEffect(() => {
       const fetchAvgLoadTime = async () => {
         try {
@@ -122,11 +88,6 @@ const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
       };
 
       fetchAvgLoadTime();
-      
-      // Update average load time every 5 minutes
-      const interval = setInterval(fetchAvgLoadTime, 5 * 60 * 1000);
-      
-      return () => clearInterval(interval);
     }, []);
     
     // Expose the refresh method to parent components via ref
@@ -134,16 +95,10 @@ const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
       refreshTopNews: () => {
         console.log("Refreshing top news");
         setIsRefreshing(true);
-        setLoadStartTime(null);
-        setLoadTime(null);
-        setElapsedTime(0);
-        setShowSpinner(false);
-        setIsTimerActive(false);
-        refetch().finally(() => {
-          // Add a small delay to ensure animation is visible even for quick responses
+        manualRefresh().finally(() => {
           setTimeout(() => {
             setIsRefreshing(false);
-          }, 500);
+          }, 1000);
         });
       }
     }));
@@ -153,41 +108,7 @@ const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
     }
   
     if (isLoading) {
-      return (
-        <Card className="mb-2 overflow-hidden bg-[#F2DC5D] border-2 border-[#E9CD3D] shadow-md">
-          <CardContent className="p-4">
-            <div className="flex justify-end items-center mb-3">
-              <Badge variant="outline" className="bg-primary text-white text-xs px-2 py-1">
-                <a 
-                  href="https://mistral.ai/news/mistral-small-3-1" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline text-white"
-                >
-                  Headline selected by Mistral Small 3.1
-                </a>
-              </Badge>
-            </div>
-            <div className="relative py-4">
-              <div className="flex flex-col items-center">
-                {showSpinner ? (
-                  <>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mb-3"></div>
-                    <span className="text-lg font-bold text-primary">Loading top news...</span>
-                  </>
-                ) : (
-                  <span className="text-lg font-bold text-primary">Loading top news...</span>
-                )}
-              </div>
-              
-              {/* Timer in bottom right corner */}
-              <div className="absolute bottom-2 right-2">
-                <span className="text-2xl font-bold text-primary">{elapsedTime.toFixed(1)}s</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      );
+      return <TopNewsCardSkeleton />;
     }
     
     if (isError || !topNews || topNews.length === 0) {
@@ -248,32 +169,32 @@ const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
               href={topArticle.link} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-primary hover:underline font-bold text-xl block text-center"
+              className="group block hover:bg-primary/5 -m-2 p-2 rounded-lg transition-colors"
             >
-              {topArticle.title.toUpperCase()}
-            </a>
-            
-            <div className="flex justify-between items-center mt-4">
-              <div className="flex items-center">
-                <Newspaper className="h-4 w-4 mr-1 text-primary/70" />
-                <p className="text-sm font-medium text-primary/80">
-                  {topArticle.sourceName}
-                </p>
-              </div>
+              <h3 className="text-2xl font-bold text-primary text-center mb-8 group-hover:text-primary/80 transition-colors leading-tight uppercase">
+                {topArticle.title}
+              </h3>
               
-              {topArticle.pubDate && (
-                <div className="text-right">
-                  <p className="text-sm text-primary/70">
-                    Story Published: {format(new Date(topArticle.pubDate), 'h:mm a')}
-                  </p>
-                  {loadTime !== null && (
-                    <p className="text-sm text-primary/70">
-                      Load Time: {loadTime.toFixed(2)}s{avgLoadTime !== null ? ` (Avg. ${avgLoadTime.toFixed(2)}s)` : ''}
-                    </p>
-                  )}
+              <div className="flex justify-between items-end text-sm text-primary">
+                <div className="flex items-center">
+                  <Newspaper className="h-4 w-4 mr-2" />
+                  <span className="font-bold">{topArticle.sourceName}</span>
                 </div>
-              )}
-            </div>
+                
+                <div className="text-right">
+                  <div className="mb-1 font-medium">
+                    Story Published: {format(new Date(topArticle.pubDate), "h:mm a")}
+                  </div>
+                  <div className="font-medium">
+                    {loadTime ? (
+                      <>Load Time: {loadTime.toFixed(2)}s{avgLoadTime && ` (Avg. ${avgLoadTime.toFixed(2)}s)`}</>
+                    ) : (
+                      <>Load Time: Instant{avgLoadTime && ` (Avg. ${avgLoadTime.toFixed(2)}s)`}</>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </a>
           </div>
         </CardContent>
       </Card>
@@ -281,7 +202,7 @@ const TopNewsCard = forwardRef<TopNewsCardRefHandle, TopNewsCardProps>(
   }
 );
 
-// Add the CSS for the perimeter animation
+// Add the perimeter animation styles
 const style = document.createElement('style');
 style.textContent = `
 @keyframes border-flow {

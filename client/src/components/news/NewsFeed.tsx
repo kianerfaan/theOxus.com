@@ -10,14 +10,14 @@
 
 import { useEffect, useState, forwardRef, useImperativeHandle, useRef } from "react";
 import ArticleCard from "./ArticleCard";
-import Toolbar from "./Toolbar";
+import Toolbar from "../layout/Toolbar";
 import { useArticles } from "@/hooks/useArticles";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { RssItem } from "@shared/schema";
 import { format } from "date-fns";
-import PictureOfTheDay from "./PictureOfTheDay";
-import TickerTape from "./TickerTape";
+import PictureOfTheDay from "../PictureOfTheDay";
+import TickerTape from "../widgets/TickerTape";
 import TopNewsCard, { TopNewsCardRefHandle } from "./TopNewsCard";
 import SearchBar from "./SearchBar";
 
@@ -190,7 +190,7 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
     }));
     
     return (
-      <main className="flex-1 overflow-y-auto pt-0 md:pt-2 pb-2 px-0 md:px-2 mt-14 md:mt-0">
+      <main className="flex-1 overflow-y-auto pt-0 md:pt-1 pb-1 px-0 md:px-1 mt-14 md:mt-0">
         {/* Ticker Tape - at the top */}
         <TickerTape 
           isEnabled={tickerEnabled} 
@@ -199,7 +199,7 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
         />
         
         {/* Search Bar - Show when search is enabled */}
-        <div className="px-2 mt-0">
+        <div className="px-1 mt-0">
           <SearchBar 
             isVisible={searchEnabled} 
             onSearch={setSearchTerm}
@@ -210,7 +210,7 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
         {(!searchEnabled || searchTerm.trim() === '') && (
           <>
             {/* Top News (powered by Mistral AI) */}
-            <div className="mt-2">
+            <div className="mt-1">
               <TopNewsCard 
                 ref={topNewsRef}
                 isVisible={topNewsEnabled} 
@@ -263,8 +263,8 @@ const NewsFeed = forwardRef<NewsFeedRefHandle, NewsFeedProps>(
             </div>
           ) : (
             <>
-              {displayedArticles.map(article => (
-                <ArticleCard key={article.id} article={article} />
+              {displayedArticles.map((article, index) => (
+                <ArticleCard key={`${article.id}-${index}`} article={article} />
               ))}
               
               {/* Load More Button */}

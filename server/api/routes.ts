@@ -10,17 +10,19 @@
 
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { pool, db } from "./db";
-import { eq, lt } from "drizzle-orm";
+import { storage } from "../core/storage";
+import { pool, db } from "../core/db";
+import { eq, lt, and, gte, sql } from "drizzle-orm";
 import Parser from "rss-parser";
 import { z } from "zod";
-import { insertFeedSourceSchema, forumPosts, insertForumPostSchema, type RssItem, type RankedNewsItem, type ForumPost } from "@shared/schema";
+import { insertFeedSourceSchema, feedSources, forumPosts, insertForumPostSchema, userActivity, insertUserActivitySchema, type RssItem, type RankedNewsItem, type ForumPost } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { rankNewsArticles } from "./mistral";
-import { getOxusHeadlines } from "./oxus";
-import { parseRSSDate, filterRecentArticles } from "./dateUtils";
+import { rssHttpClient, externalApiClient, RSS_CIRCUIT_BREAKER_CONFIG, EXTERNAL_API_CIRCUIT_BREAKER_CONFIG, getResilienceStatus } from '../utils/resilience';
+import { rankNewsArticles } from "../services/mistral";
+import { getOxusHeadlines } from "../services/oxus";
+import { parseRSSDate, filterRecentArticles } from "../utils/dateUtils";
+import { getCachedTopNews, getCacheStatus, triggerImmediateProcessing } from "../services/backgroundJobs";
 
 /**
  * Registers all API routes with the Express application
@@ -49,6 +51,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     }
   });
+
+  /**
+   * Resilient RSS parsing function that uses circuit breaker protection
+   */
+  async function parseRSSWithResilience(url: string, parser: Parser): Promise<any> {
+    const response = await rssHttpClient.request(url, {
+      headers: {
+        'User-Agent': 'theOxus RSS Reader/1.0',
+        'Accept': 'application/rss+xml, application/xml, text/xml'
+      },
+      timeout: 10000 // 10 second timeout
+    }, RSS_CIRCUIT_BREAKER_CONFIG);
+    
+    const text = await response.text();
+    return parser.parseString(text);
+  }
   
   /**
    * Media RSS parser configuration
@@ -104,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Fetch and parse the RSS feed from the stored URL
-        const feed = await parser.parseURL(wikipediaSource.url);
+        const feed = await parseRSSWithResilience(wikipediaSource.url, parser);
         
         // Process only if there are items in the feed
         if (feed.items.length > 0) {
@@ -395,11 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/sources", async (req: Request, res: Response) => {
     try {
       const sources = await storage.getFeedSources();
-      // Filter out blacklisted sources from the sources list
-      const filteredSources = sources.filter(source => 
-        !source.name.includes('Sportskeeda') &&
-        !source.name.includes('ESPN')
-      );
+      const filteredSources = sources;
       res.json(filteredSources);
     } catch (error) {
       console.error("Error fetching feed sources:", error);
@@ -427,31 +441,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new feed source
-  app.post("/api/sources", async (req: Request, res: Response) => {
-    try {
-      const sourceData = insertFeedSourceSchema.parse(req.body);
-      
-      // Validate that the URL is a valid RSS feed by trying to fetch it
-      try {
-        await parser.parseURL(sourceData.url);
-      } catch (error) {
-        return res.status(400).json({ message: "Invalid RSS feed URL. Unable to parse the feed." });
-      }
-      
-      const source = await storage.createFeedSource(sourceData);
-      res.status(201).json(source);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid data format",
-          errors: fromZodError(error).message
-        });
-      }
-      console.error("Error creating feed source:", error);
-      res.status(500).json({ message: "Failed to create feed source" });
-    }
-  });
+
 
   // Update a feed source
   app.patch("/api/sources/:id", async (req: Request, res: Response) => {
@@ -473,13 +463,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If URL is being updated, validate it's a valid RSS feed
       if (updateData.url && updateData.url !== source.url) {
         try {
-          await parser.parseURL(updateData.url);
+          await parseRSSWithResilience(updateData.url, parser);
         } catch (error) {
           return res.status(400).json({ message: "Invalid RSS feed URL. Unable to parse the feed." });
         }
       }
 
       const updatedSource = await storage.updateFeedSource(id, updateData);
+      
+      // Clear top news cache when sources are updated
+      topNewsCache = null;
+      
       res.json(updatedSource);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -493,26 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a feed source
-  app.delete("/api/sources/:id", async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid source ID" });
-      }
 
-      const source = await storage.getFeedSource(id);
-      if (!source) {
-        return res.status(404).json({ message: "Feed source not found" });
-      }
-
-      await storage.deleteFeedSource(id);
-      res.status(204).end();
-    } catch (error) {
-      console.error("Error deleting feed source:", error);
-      res.status(500).json({ message: "Failed to delete feed source" });
-    }
-  });
 
   // Fetch news from all active feed sources
   app.get("/api/news", async (req: Request, res: Response) => {
@@ -520,14 +495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sourceId = req.query.sourceId ? parseInt(req.query.sourceId as string) : undefined;
       
       const activeSources = await storage.getActiveFeedSources();
-      // Filter out blacklisted sources
-      const nonBlacklistedSources = activeSources.filter(source => 
-        !source.name.includes('Sportskeeda') &&
-        !source.name.includes('ESPN')
-      );
       const filteredSources = sourceId
-        ? nonBlacklistedSources.filter(source => source.id === sourceId)
-        : nonBlacklistedSources;
+        ? activeSources.filter(source => source.id === sourceId)
+        : activeSources;
       
       if (filteredSources.length === 0) {
         return res.json([]);
@@ -535,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const fetchPromises = filteredSources.map(async (source) => {
         try {
-          const feed = await parser.parseURL(source.url);
+          const feed = await parseRSSWithResilience(source.url, parser);
           
           // Special handling for Wikipedia Current Events
           if (source.name === "Wikipedia Current Events") {
@@ -640,32 +610,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cache for top news results - 5 minute cache
+  let topNewsCache: { data: any; timestamp: number } | null = null;
+  const TOP_NEWS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   /**
-   * Top News API endpoint with AI-powered ranking
+   * Top News API endpoint with instant loading via background processing
    * 
-   * Fetches news from all active sources, analyzes them using Mistral AI,
-   * and returns a ranked list of the most important current news articles.
+   * Returns pre-processed AI-ranked news articles for instant loading.
+   * Falls back to real-time processing only if background cache is unavailable.
    * 
    * Features:
-   * - Aggregates articles from multiple sources
-   * - Filters to recent articles (prioritizing last 2 hours)
-   * - Uses AI analysis for ranking importance and relevance
-   * - Ensures content safety by filtering out self-references
+   * - Instant loading from 15-minute background cache
+   * - AI-powered ranking using Mistral AI
+   * - Automatic background updates every 15 minutes
+   * - Manual refresh capability
+   * - Fallback to real-time processing when needed
    * 
    * Route: GET /api/top-news
+   * Query params:
+   * - refresh=true: Triggers immediate background processing
    * 
    * @returns JSON array of ranked news articles with scores
    * @throws 500 error if fetching or ranking fails
    */
   app.get("/api/top-news", async (req: Request, res: Response) => {
-    const startTime = Date.now();
-    
     try {
+      // Check if manual refresh was requested
+      const shouldRefresh = req.query.refresh === 'true';
+      
+      if (shouldRefresh) {
+        console.log('Manual refresh requested for top news');
+        // Trigger immediate background processing (async)
+        triggerImmediateProcessing().catch(error => {
+          console.error('Error in manual refresh:', error);
+        });
+      }
+      
+      // Try to get cached results from background processing
+      const cachedResults = getCachedTopNews();
+      
+      if (cachedResults && cachedResults.length > 0) {
+        console.log('Returning background-processed top news results');
+        return res.json(cachedResults);
+      }
+      
+      // Fallback: No cached results available, use real-time processing
+      console.log('No background cache available, falling back to real-time processing');
+      
+      const startTime = Date.now();
+      
       // Record page visit
       try {
         await pool.query('INSERT INTO page_visits (timestamp) VALUES (NOW())');
       } catch (visitError) {
         console.error('Error recording page visit:', visitError);
+      }
+      
+      // Check old cache as emergency fallback
+      if (topNewsCache && (Date.now() - topNewsCache.timestamp) < TOP_NEWS_CACHE_DURATION) {
+        console.log('Using emergency fallback cache');
+        return res.json(topNewsCache.data);
       }
       
       // Get all active news sources from storage
@@ -677,22 +682,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      // Filter out non-news sources, self-references, and blacklisted sources
+      // Filter to only active sources
       const newsSources = activeSources.filter(source => 
-        (source.category === "News" || 
-        source.url.includes('news') ||
-        source.name.toLowerCase().includes('news') ||
-        source.isActive === true) && 
+        source.isActive && // Only include sources that are toggled ON
         !source.name.includes('theOxus') &&
         !source.url.includes('theoxus.com') &&
-        !source.name.includes('Sportskeeda') &&
-        !source.name.includes('ESPN')
+        source.name !== "Wikipedia Current Events" &&
+        source.name !== "Wikipedia Picture of the Day"
       );
       
-      // Use all sources if we couldn't identify specific news sources
-      const sourcesToUse = newsSources.length > 0 ? newsSources : activeSources;
+      // Use filtered active sources
+      const sourcesToUse = newsSources;
       
-      console.log(`Aggregating articles from ${sourcesToUse.length} sources for top news analysis`);
+      console.log(`Real-time fallback: Aggregating articles from ${sourcesToUse.length} sources`);
       
       try {
         // Fetch articles from ALL selected news sources
@@ -701,7 +703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create fetch promises for all sources
         const fetchPromises = sourcesToUse.map(async (source) => {
           try {
-            const feed = await parser.parseURL(source.url);
+            const feed = await parseRSSWithResilience(source.url, parser);
             
             if (feed.items && feed.items.length > 0) {
               // Convert feed items to RssItems and add to the collection
@@ -740,7 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           !article.sourceName.includes('theOxus')
         );
         
-        console.log(`Collected ${filteredArticles.length} total articles from all sources (after filtering)`);
+        console.log(`Collected ${filteredArticles.length} total articles from all sources (real-time fallback)`);
         
         // Replace allArticles with the filtered version
         allArticles.length = 0;
@@ -749,7 +751,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Rank articles using Mistral AI
         const rankedArticles = await rankNewsArticles(allArticles);
         
-        console.log(`Ranked ${rankedArticles.length} articles from all sources`);
+        console.log(`Real-time fallback: Ranked ${rankedArticles.length} articles`);
+        
+        // Cache the results for 5 minutes as emergency fallback
+        topNewsCache = {
+          data: rankedArticles,
+          timestamp: Date.now()
+        };
         
         // Record load time to database
         const endTime = Date.now();
@@ -772,6 +780,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching ranked news:", error);
       res.status(500).json({ message: "Failed to fetch ranked news" });
+    }
+  });
+
+  // Get top news cache status for debugging and user feedback
+  app.get("/api/top-news-status", async (req: Request, res: Response) => {
+    try {
+      const cacheStatus = getCacheStatus();
+      res.json(cacheStatus);
+    } catch (error) {
+      console.error("Error fetching cache status:", error);
+      res.status(500).json({ message: "Failed to fetch cache status" });
+    }
+  });
+
+  // Trigger immediate background processing (used when sources are toggled)
+  app.post("/api/refresh-top-news", async (req: Request, res: Response) => {
+    try {
+      console.log('Manual trigger for top news refresh via API');
+      // Trigger immediate background processing (async)
+      triggerImmediateProcessing().catch(error => {
+        console.error('Error in manual API refresh:', error);
+      });
+      res.json({ message: "Background processing triggered" });
+    } catch (error) {
+      console.error("Error triggering background processing:", error);
+      res.status(500).json({ message: "Failed to trigger background processing" });
     }
   });
 
@@ -885,6 +919,285 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error voting on forum post:", error);
       res.status(500).json({ message: "Failed to vote on post" });
+    }
+  });
+
+  // User Activity API endpoints
+  
+  // Track user login activity
+  app.post("/api/user-activity", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertUserActivitySchema.parse(req.body);
+      
+      // Update existing user or create new one
+      const [userRecord] = await db.insert(userActivity).values({
+        firebaseUid: validatedData.firebaseUid,
+        email: validatedData.email,
+        displayName: validatedData.displayName,
+        photoURL: validatedData.photoURL,
+        lastLoginAt: new Date()
+      }).onConflictDoUpdate({
+        target: userActivity.firebaseUid,
+        set: {
+          email: validatedData.email,
+          displayName: validatedData.displayName,
+          photoURL: validatedData.photoURL,
+          lastLoginAt: new Date()
+        }
+      }).returning();
+      
+      res.status(201).json(userRecord);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        res.status(400).json({ message: validationError.toString() });
+      } else {
+        console.error("Error tracking user activity:", error);
+        res.status(500).json({ message: "Failed to track user activity" });
+      }
+    }
+  });
+
+  // Get active community members count (last 7 days)
+  app.get("/api/community-members-count", async (req: Request, res: Response) => {
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(userActivity)
+        .where(gte(userActivity.lastLoginAt, sevenDaysAgo));
+      
+      const count = result[0]?.count || 0;
+      
+      res.json({ activeMembersLast7Days: count });
+    } catch (error) {
+      console.error("Error fetching community members count:", error);
+      res.status(500).json({ message: "Failed to fetch community members count" });
+    }
+  });
+
+  // Market Data API endpoints
+  app.get("/api/market/indices", async (req: Request, res: Response) => {
+    try {
+      const apiKey = process.env.POLYGON_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "Polygon API key not configured" });
+      }
+
+      // Fetch major indices data using Polygon API
+      const symbols = ['SPY', 'QQQ', 'DIA']; // S&P 500, Nasdaq 100, Dow Jones ETFs
+      const results = [];
+
+      for (const symbol of symbols) {
+        try {
+          // Get previous day's data from Polygon
+          const response = await fetch(
+            `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?adjusted=true&apikey=${apiKey}`
+          );
+          const data = await response.json();
+          
+          if (data.results && data.results.length > 0) {
+            const result = data.results[0];
+            const price = result.c; // Close price
+            const change = result.c - result.o; // Close - Open
+            const changePercent = ((change / result.o) * 100);
+            
+            results.push({
+              symbol,
+              name: symbol === 'SPY' ? 'S&P 500' : symbol === 'QQQ' ? 'Nasdaq 100' : 'Dow Jones',
+              price: parseFloat(price.toFixed(2)),
+              change: parseFloat(change.toFixed(2)),
+              changePercent: parseFloat(changePercent.toFixed(2)),
+              previousClose: parseFloat(result.o.toFixed(2))
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${symbol}:`, error);
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching market indices:", error);
+      res.status(500).json({ message: "Failed to fetch market data" });
+    }
+  });
+
+  app.get("/api/market/crypto", async (req: Request, res: Response) => {
+    try {
+      const apiKey = process.env.POLYGON_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "Polygon API key not configured" });
+      }
+
+      // Get Bitcoin price from Polygon crypto API
+      const response = await fetch(
+        `https://api.polygon.io/v2/aggs/ticker/X:BTCUSD/prev?adjusted=true&apikey=${apiKey}`
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        const price = result.c; // Close price
+        const change = result.c - result.o; // Close - Open
+        const changePercent = ((change / result.o) * 100);
+        
+        res.json({
+          symbol: 'BTC/USD',
+          price: parseFloat(price.toFixed(2)),
+          change: parseFloat(change.toFixed(2)),
+          changePercent: parseFloat(changePercent.toFixed(2)),
+          lastUpdate: new Date(result.t).toISOString()
+        });
+      } else {
+        res.status(404).json({ message: "Crypto data not available" });
+      }
+    } catch (error) {
+      console.error("Error fetching crypto data:", error);
+      res.status(500).json({ message: "Failed to fetch crypto data" });
+    }
+  });
+
+  app.get("/api/market/chart/:symbol", async (req: Request, res: Response) => {
+    try {
+      const { symbol } = req.params;
+      const apiKey = process.env.POLYGON_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ message: "Polygon API key not configured" });
+      }
+
+      // Get 1 year of historical data from Polygon
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(endDate.getFullYear() - 1);
+      
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      
+      const response = await fetch(
+        `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${formatDate(startDate)}/${formatDate(endDate)}?adjusted=true&sort=asc&apikey=${apiKey}`
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const chartData = data.results.map((result: any) => ({
+          date: new Date(result.t).toISOString().split('T')[0],
+          close: parseFloat(result.c.toFixed(2)), // Close price
+          volume: result.v // Volume
+        }));
+        
+        res.json(chartData);
+      } else {
+        res.status(404).json({ message: "Chart data not available" });
+      }
+    } catch (error) {
+      console.error("Error fetching chart data:", error);
+      res.status(500).json({ message: "Failed to fetch chart data" });
+    }
+  });
+
+  app.get("/api/market/watchlist", async (req: Request, res: Response) => {
+    try {
+      const apiKey = process.env.POLYGON_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "Polygon API key not configured" });
+      }
+
+      // Sample watchlist stocks
+      const symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMD', 'NVDA'];
+      const results = [];
+
+      for (const symbol of symbols) {
+        try {
+          // Get previous day's data from Polygon
+          const response = await fetch(
+            `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?adjusted=true&apikey=${apiKey}`
+          );
+          const data = await response.json();
+          
+          if (data.results && data.results.length > 0) {
+            const result = data.results[0];
+            const price = result.c; // Close price
+            const change = result.c - result.o; // Close - Open
+            const changePercent = ((change / result.o) * 100);
+            
+            results.push({
+              symbol,
+              price: parseFloat(price.toFixed(2)),
+              change: parseFloat(change.toFixed(2)),
+              changePercent: parseFloat(changePercent.toFixed(2))
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${symbol}:`, error);
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching watchlist:", error);
+      res.status(500).json({ message: "Failed to fetch watchlist data" });
+    }
+  });
+
+  // Get resilience system status
+  app.get("/api/resilience-status", async (req: Request, res: Response) => {
+    try {
+      const status = getResilienceStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting resilience status:", error);
+      res.status(500).json({ message: "Failed to get resilience status" });
+    }
+  });
+
+  app.get("/api/market/news", async (req: Request, res: Response) => {
+    try {
+      const parser = new Parser();
+      
+      // Direct URLs for financial news sources (Markets category)
+      const marketSources = [
+        { name: "Motley Fool 🇺🇸", url: "https://rss.app/feeds/O7gJqCRcEmx0jBV3.xml" },
+        { name: "Benzinga 🇺🇸", url: "https://rss.app/feeds/Zm8MEQRRRpaSdM0b.xml" },
+        { name: "Investing.com 🇭🇰", url: "https://www.investing.com/rss/news_25.rss" },
+        { name: "MarketWatch 🇺🇸", url: "https://feeds.marketwatch.com/marketwatch/realtimeheadlines/" },
+        { name: "Investopedia 🇺🇸", url: "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedName=rss_articles" },
+        { name: "Cointelegraph 🇺🇸", url: "https://cointelegraph.com/rss" },
+        { name: "Business Insider 🇺🇸", url: "https://feeds.businessinsider.com/custom/all" }
+      ];
+
+      const allMarketNews: any[] = [];
+
+      // Fetch news from each Markets source
+      for (const source of marketSources) {
+        try {
+          const feed = await parseRSSWithResilience(source.url, parser);
+          const sourceNews = feed.items.slice(0, 3).map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            description: item.contentSnippet || item.description,
+            sourceName: source.name
+          }));
+          allMarketNews.push(...sourceNews);
+        } catch (sourceError) {
+          console.error(`Error fetching from ${source.name}:`, sourceError);
+          // Continue with other sources even if one fails
+        }
+      }
+
+      // Sort by publication date, newest first, and limit to 12 articles
+      allMarketNews.sort((a, b) => {
+        const dateA = new Date(a.pubDate || 0);
+        const dateB = new Date(b.pubDate || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      res.json(allMarketNews.slice(0, 12));
+    } catch (error) {
+      console.error("Error fetching market news:", error);
+      res.status(500).json({ message: "Failed to fetch market news" });
     }
   });
 

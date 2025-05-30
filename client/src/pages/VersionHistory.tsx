@@ -5,11 +5,46 @@ import { Badge } from "@/components/ui/badge";
 export default function VersionHistory() {
   const versions = [
     {
+      version: "16",
+      date: "May 30, 2025",
+      isCurrent: true,
+      description: "Optimized sidebar and homepage layout by removing dead space throughout the interface. Moved Google Sign-In button to a centered position below customization options for improved user flow. Reduced padding and margins across components for more efficient screen space utilization.",
+      hasGitHubRelease: false
+    },
+    {
+      version: "15",
+      date: "May 30, 2025",
+      isCurrent: false,
+      description: "Streamlined application interface by removing custom source management and blacklist functionality. Changed customization and upcoming features sections to maize/yellow styling for better visual distinction. Simplified user experience with curated RSS sources only.",
+      hasGitHubRelease: false
+    },
+    {
+      version: "14",
+      date: "May 30, 2025",
+      isCurrent: false,
+      description: "Enhanced service, news feed, and application stability by managing traffic spikes, preventing overloads, and handling errors. Updated news analysis for active source selection. Improved news loading time with background AI processing.",
+      hasGitHubRelease: false
+    },
+    {
+      version: "13",
+      date: "May 28, 2025",
+      isCurrent: false,
+      description: "Added top headline caching for much faster top headline generation, significantly improving performance and user experience",
+      hasGitHubRelease: false
+    },
+    {
+      version: "12",
+      date: "May 27, 2025",
+      isCurrent: false,
+      description: "Added comprehensive financial market dashboard with TradingView widgets, crypto heatmap, forex cross-rates, watchlist functionality, and market news integration for enhanced trading insights",
+      hasGitHubRelease: false
+    },
+    {
       version: "11",
       date: "May 26, 2025",
-      isCurrent: true,
+      isCurrent: false,
       description: "Enhanced database management with 30-day average load time tracking, global page visit analytics, and early build-out of community forum with Google authentication for premium users",
-      hasGitHubRelease: false
+      hasGitHubRelease: true
     },
     {
       version: "10",

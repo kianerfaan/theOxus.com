@@ -47,6 +47,20 @@ export const forumPosts = pgTable("forum_posts", {
 });
 
 /**
+ * User activity table schema
+ * Tracks user login activity for Firebase authenticated users
+ */
+export const userActivity = pgTable("user_activity", {
+  id: serial("id").primaryKey(),
+  firebaseUid: text("firebase_uid").notNull().unique(),
+  email: text("email").notNull(),
+  displayName: text("display_name"),
+  photoURL: text("photo_url"),
+  lastLoginAt: timestamp("last_login_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
  * Zod schema for feed source creation/insertion
  * Used for validation when adding new feed sources
  */
@@ -74,6 +88,17 @@ export const insertForumPostSchema = createInsertSchema(forumPosts).pick({
   content: true,
 });
 
+/**
+ * Zod schema for user activity creation/insertion
+ * Used for validation when tracking user login activity
+ */
+export const insertUserActivitySchema = createInsertSchema(userActivity).pick({
+  firebaseUid: true,
+  email: true,
+  displayName: true,
+  photoURL: true,
+});
+
 // TypeScript type definitions derived from the Zod schemas and database tables
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -83,6 +108,9 @@ export type FeedSource = typeof feedSources.$inferSelect;
 
 export type InsertForumPost = z.infer<typeof insertForumPostSchema>;
 export type ForumPost = typeof forumPosts.$inferSelect;
+
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+export type UserActivity = typeof userActivity.$inferSelect;
 
 /**
  * RSS item type definition

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import Sidebar from "@/components/Sidebar";
-import NewsFeed from "@/components/NewsFeed";
+import Sidebar from "@/components/layout/Sidebar";
+import NewsFeed from "@/components/news/NewsFeed";
 import WikipediaCurrentEvents from "@/components/WikipediaCurrentEvents";
-import AddSourceModal from "@/components/AddSourceModal";
+
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { useToast } from "@/hooks/use-toast";
 import { useMobile } from "@/hooks/use-mobile";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FeedSource } from "@shared/schema";
 
 function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("news");
@@ -29,13 +29,7 @@ function Home() {
     }
   }, [isMobile]);
 
-  const showAddSourceModal = () => {
-    setIsModalOpen(true);
-  };
 
-  const closeAddSourceModal = () => {
-    setIsModalOpen(false);
-  };
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -45,6 +39,12 @@ function Home() {
   const newsFeedRef = useRef<{
     refreshFeed: () => void;
   } | null>(null);
+
+  // Handle when sources are changed in the sidebar
+  const handleSourcesChanged = () => {
+    // Force refresh of the news feed when sources change
+    newsFeedRef.current?.refreshFeed();
+  };
   
   const handleSourceSelect = (id: number | undefined) => {
     setSelectedSourceId(id);
@@ -149,7 +149,6 @@ function Home() {
         } fixed inset-y-0 left-0 transform transition duration-200 ease-in-out z-20 md:relative md:z-0 md:translate-x-0`}
       >
         <Sidebar 
-          onAddSource={showAddSourceModal} 
           onSelectSource={handleSourceSelect} 
           selectedSourceId={selectedSourceId}
           tickerEnabled={tickerEnabled}
@@ -160,18 +159,19 @@ function Home() {
           onSearchToggle={handleSearchToggle}
           pictureOfTheDayEnabled={pictureOfTheDayEnabled}
           onPictureOfTheDayToggle={setPictureOfTheDayEnabled}
+          onSourcesChanged={handleSourcesChanged}
         />
       </div>
 
       {/* Main Content with Tabs */}
-      <div className="flex-1 overflow-y-auto pt-0 md:pt-2 pb-2 px-4 md:px-6 mt-14 md:mt-0">
+      <div className="flex-1 overflow-y-auto pt-0 md:pt-1 pb-1 px-3 md:px-4 mt-14 md:mt-0">
         <Tabs 
           defaultValue="news" 
           value={activeTab} 
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid grid-cols-2 mb-2">
+          <TabsList className="grid grid-cols-2 mb-1">
             <TabsTrigger value="news">News Feeds</TabsTrigger>
             <TabsTrigger value="wikipedia">Current Events</TabsTrigger>
           </TabsList>
@@ -197,11 +197,7 @@ function Home() {
         </Tabs>
       </div>
 
-      {/* Add Source Modal */}
-      <AddSourceModal 
-        isOpen={isModalOpen} 
-        onClose={closeAddSourceModal} 
-      />
+
 
       {/* Overlay for mobile when sidebar is open */}
       {isMobile && isSidebarOpen && (

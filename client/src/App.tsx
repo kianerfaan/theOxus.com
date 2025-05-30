@@ -19,7 +19,8 @@ import Home from "@/pages/Home";
 import CalendarPage from "@/pages/Calendar";
 import Forum from "@/pages/Forum";
 import LibraryPage from "@/pages/Library";
-import BlacklistPage from "@/pages/Blacklist";
+import Market from "@/pages/Market";
+
 import VersionHistory from "@/pages/VersionHistory";
 import PrivacyPolicy from "@/pages/Privacy";
 import TermsOfService from "@/pages/Terms";
@@ -38,7 +39,8 @@ function Router() {
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/forum" component={Forum} />
       <Route path="/library" component={LibraryPage} />
-      <Route path="/blacklist" component={BlacklistPage} />
+      <Route path="/market" component={Market} />
+
       <Route path="/version-history" component={VersionHistory} />
       <Route path="/privacy" component={PrivacyPolicy} />
       <Route path="/terms" component={TermsOfService} />

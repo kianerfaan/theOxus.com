@@ -1,8 +1,8 @@
 import { useWikipediaCurrentEvents } from "@/hooks/useWikipediaCurrentEvents";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ArticleCard from "./ArticleCard";
-import Toolbar from "./Toolbar";
+import ArticleCard from "./news/ArticleCard";
+import Toolbar from "./layout/Toolbar";
 import { useEffect } from "react";
 
 interface WikipediaCurrentEventsProps {

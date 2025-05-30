@@ -13,9 +13,9 @@ export function useTopNews() {
     refetch 
   } = useQuery<RankedNewsItem[]>({
     queryKey: ['/api/top-news'],
-    refetchOnWindowFocus: true,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    refetchInterval: 60 * 60 * 1000, // Refresh every hour
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 15 * 60 * 1000, // 15 minutes to match background processing
+    refetchInterval: 15 * 60 * 1000, // Refresh every 15 minutes
   });
   
   // Update lastUpdated when data is refreshed
@@ -25,12 +25,23 @@ export function useTopNews() {
     }
   }, [topNews]);
   
+  // Manual refresh with background processing trigger
+  const manualRefresh = async () => {
+    // Trigger background processing
+    fetch('/api/top-news?refresh=true');
+    // Then refetch the cached data after a short delay
+    setTimeout(() => {
+      refetch();
+    }, 1000);
+  };
+  
   return {
     topNews,
     isLoading,
     isError,
     error,
     refetch,
+    manualRefresh,
     lastUpdated
   };
 }

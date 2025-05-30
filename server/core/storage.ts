@@ -334,6 +334,70 @@ export class MemStorage implements IStorage {
       isActive: true,
     });
     
+    this.createFeedSource({
+      name: "Cup of Jo",
+      url: "https://feeds.feedburner.com/blogspot/bboSV",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Entrepreneur.com",
+      url: "https://www.entrepreneur.com/latest.rss",
+      category: "Alternative",
+      isActive: true,
+    });
+    
+    // Finance category
+    this.createFeedSource({
+      name: "Motley Fool 🇺🇸",
+      url: "https://rss.app/feeds/O7gJqCRcEmx0jBV3.xml",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Benzinga 🇺🇸",
+      url: "https://rss.app/feeds/Zm8MEQRRRpaSdM0b.xml",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Investing.com 🇭🇰",
+      url: "https://www.investing.com/rss/news_25.rss",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "MarketWatch 🇺🇸",
+      url: "https://feeds.marketwatch.com/marketwatch/realtimeheadlines/",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Investopedia 🇺🇸",
+      url: "https://www.investopedia.com/feedbuilder/feed/getfeed/?feedName=rss_articles",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Cointelegraph 🇺🇸",
+      url: "https://cointelegraph.com/rss",
+      category: "Finance",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Business Insider 🇺🇸",
+      url: "https://feeds.businessinsider.com/custom/all",
+      category: "Finance",
+      isActive: true,
+    });
+    
     // Technology category
     this.createFeedSource({
       name: "TechCrunch 🇺🇸",
@@ -423,23 +487,111 @@ export class MemStorage implements IStorage {
     // Sports category
     
     this.createFeedSource({
-      name: "Football365 🇬🇧",
-      url: "https://www.football365.com/feed",
-      category: "Sports",
-      isActive: true,
-    });
-    
-    this.createFeedSource({
-      name: "Goal.com 🇺🇸🇬🇧",
-      url: "https://www.goal.com/feeds/en/news",
-      category: "Sports",
-      isActive: true,
-    });
-    
-    this.createFeedSource({
       name: "ATP World Tour 🇬🇧🇲🇨🇺🇸🇦🇺",
       url: "https://www.atptour.com/en/media/rss-feed/xml-feed",
       category: "Sports",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "CBS Sports 🇺🇸",
+      url: "https://www.cbssports.com/rss/headlines/nba/",
+      category: "Sports",
+      isActive: true,
+    });
+    
+    // Academic category
+    
+    this.createFeedSource({
+      name: "Nature",
+      url: "https://www.nature.com/nature.rss",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Econometrica",
+      url: "https://onlinelibrary.wiley.com/feed/14680262/most-recent",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Fordham Law Review",
+      url: "https://ir.lawnet.fordham.edu/flr/recent.rss",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Journal of Applied Psychology",
+      url: "https://psycnet.apa.org/journals/apl.rss",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Journal of Finance",
+      url: "https://onlinelibrary.wiley.com/feed/15406261/most-recent",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Sloan Management Review",
+      url: "http://feeds.feedburner.com/mitsmr",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "University of Maryland Physics",
+      url: "https://umdphysics.umd.edu/about-us/news/research-news.feed?type=rss",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "University of Michigan Law and Economics",
+      url: "https://repository.law.umich.edu/law_econ_current/recent.rss",
+      category: "Academic",
+      isActive: true,
+    });
+    
+    // Entertainment category
+    
+    this.createFeedSource({
+      name: "Billboard",
+      url: "https://www.billboard.com/feed/",
+      category: "Entertainment",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "GQ",
+      url: "https://www.gq.com/feed/rss",
+      category: "Entertainment",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "TMZ",
+      url: "https://www.tmz.com/rss.xml",
+      category: "Entertainment",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "FastCompany",
+      url: "https://www.fastcompany.com/latest/rss?truncated=true",
+      category: "Entertainment",
+      isActive: true,
+    });
+    
+    this.createFeedSource({
+      name: "Mashable",
+      url: "http://feeds.mashable.com/mashable",
+      category: "Entertainment",
       isActive: true,
     });
     
