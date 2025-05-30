@@ -18,7 +18,7 @@ function Home() {
   const [tickerEnabled, setTickerEnabled] = useState(false);
   const [topNewsEnabled, setTopNewsEnabled] = useState(true); // Enabled by default
   const [searchEnabled, setSearchEnabled] = useLocalStorage<boolean>("searchEnabled", true); // Enabled by default, persisted in localStorage
-  const [pictureOfTheDayEnabled, setPictureOfTheDayEnabled] = useState(true); // Default to on
+  const [pictureOfTheDayLocation, setPictureOfTheDayLocation] = useState<'off' | 'news-feed' | 'current-events'>('current-events'); // Default to current events
   const { isMobile } = useMobile();
   const { toast } = useToast();
 
@@ -157,8 +157,8 @@ function Home() {
           onTopNewsToggle={handleTopNewsToggle}
           searchEnabled={searchEnabled}
           onSearchToggle={handleSearchToggle}
-          pictureOfTheDayEnabled={pictureOfTheDayEnabled}
-          onPictureOfTheDayToggle={setPictureOfTheDayEnabled}
+          pictureOfTheDayLocation={pictureOfTheDayLocation}
+          onPictureOfTheDayLocationChange={setPictureOfTheDayLocation}
           onSourcesChanged={handleSourcesChanged}
         />
       </div>
@@ -187,12 +187,15 @@ function Home() {
               onTopNewsToggle={handleTopNewsToggle}
               searchEnabled={searchEnabled}
               onSearchToggle={handleSearchToggle}
-              pictureOfTheDayEnabled={pictureOfTheDayEnabled}
+              pictureOfTheDayLocation={pictureOfTheDayLocation}
             />
           </TabsContent>
           
           <TabsContent value="wikipedia" className="mt-0">
-            <WikipediaCurrentEvents onError={handleError} />
+            <WikipediaCurrentEvents 
+              onError={handleError} 
+              pictureOfTheDayLocation={pictureOfTheDayLocation}
+            />
           </TabsContent>
         </Tabs>
       </div>
